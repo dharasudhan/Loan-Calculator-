@@ -1,0 +1,6 @@
+{
+  "name": "Mortgage & Loan Calculator",
+  "description": "An intuitive, multi-language mortgage and loan calculator featuring active amortization schedules, localized tax deduction estimates, and PDF report exportation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
