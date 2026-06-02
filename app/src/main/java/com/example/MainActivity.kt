@@ -58,6 +58,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -101,8 +102,16 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     setContent {
-      MyApplicationTheme {
-        MainScreen()
+      val viewModel: LoanCalculatorViewModel = viewModel()
+      val themeModeValue by viewModel.themeMode.collectAsState()
+      val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+      val darkTheme = when (themeModeValue) {
+        "light" -> false
+        "dark" -> true
+        else -> systemDark
+      }
+      MyApplicationTheme(darkTheme = darkTheme) {
+        MainScreen(viewModel)
       }
     }
   }
@@ -115,9 +124,11 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
   val lang by viewModel.currentLanguage.collectAsState()
   val result by viewModel.calculationResult.collectAsState()
   val loanTypeVal by viewModel.loanType.collectAsState()
+  val themeModeValue by viewModel.themeMode.collectAsState()
   
   var activeTab by remember { mutableStateOf(0) }
   var langMenuExpanded by remember { mutableStateOf(false) }
+  var themeMenuExpanded by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -141,6 +152,61 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
           }
         },
         actions = {
+          // Theme selection dropdown button
+          Box(modifier = Modifier.padding(end = 4.dp)) {
+            Row(
+              modifier = Modifier
+                .clickable { themeMenuExpanded = true }
+                .background(
+                  MaterialTheme.colorScheme.surface,
+                  shape = RoundedCornerShape(24.dp)
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .testTag("theme_selector_btn"),
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              val themeLabel = when (themeModeValue) {
+                "light" -> "☀️ Light"
+                "dark" -> "🌙 Dark"
+                else -> "⚙️ System"
+              }
+              Text(
+                text = themeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+              )
+            }
+            
+            DropdownMenu(
+              expanded = themeMenuExpanded,
+              onDismissRequest = { themeMenuExpanded = false },
+              modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+            ) {
+              DropdownMenuItem(
+                text = { Text("☀️ Light Mode", color = MaterialTheme.colorScheme.onSurface) },
+                onClick = {
+                  viewModel.setThemeMode("light")
+                  themeMenuExpanded = false
+                }
+              )
+              DropdownMenuItem(
+                text = { Text("🌙 Dark Mode", color = MaterialTheme.colorScheme.onSurface) },
+                onClick = {
+                  viewModel.setThemeMode("dark")
+                  themeMenuExpanded = false
+                }
+              )
+              DropdownMenuItem(
+                text = { Text("⚙️ System Default", color = MaterialTheme.colorScheme.onSurface) },
+                onClick = {
+                  viewModel.setThemeMode("system")
+                  themeMenuExpanded = false
+                }
+              )
+            }
+          }
+
           // Language selector button
           Box(modifier = Modifier.padding(end = 8.dp)) {
             Row(
@@ -731,6 +797,195 @@ fun InputsCard(
           }
         }
       }
+
+      HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+      // Variable Interest Rate scenarios
+      val isVarEnabled by viewModel.isVariableRateEnabled.collectAsState()
+      val varPeriodVal by viewModel.variablePeriodYears.collectAsState()
+      val varAdjustVal by viewModel.subsequentAdjustRate.collectAsState()
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Column(modifier = Modifier.weight(1f)) {
+          Text(
+            text = "Adjustable Rate Scenario (ARM) 📈",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+          )
+          Text(
+            text = "Simulate variable rate changes over time",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+        Switch(
+          checked = isVarEnabled,
+          onCheckedChange = { viewModel.updateVariableRate(it, varPeriodVal, varAdjustVal) },
+          modifier = Modifier.testTag("variable_rate_switch")
+        )
+      }
+
+      if (isVarEnabled) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          var varPeriodInput by remember { mutableStateOf(varPeriodVal) }
+          var varAdjustInput by remember { mutableStateOf(varAdjustVal) }
+
+          OutlinedTextField(
+            value = varPeriodInput,
+            onValueChange = {
+              varPeriodInput = it
+              viewModel.updateVariableRate(isVarEnabled, it, varAdjustInput)
+            },
+            label = { Text("Fixed Period (Yrs)") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("arm_fixed_period_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          OutlinedTextField(
+            value = varAdjustInput,
+            onValueChange = {
+              varAdjustInput = it
+              viewModel.updateVariableRate(isVarEnabled, varPeriodInput, it)
+            },
+            label = { Text("Subsequent Reset Adj %") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("arm_adjustment_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+        }
+        Text(
+          text = "💡 Fixed interest rate for the first $varPeriodVal years. Afterwards resetting by a subsequent $varAdjustVal% variation. Monthly payments and graphs will update dynamically.",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.primary,
+          modifier = Modifier.padding(top = 8.dp)
+        )
+      }
+
+      HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+
+      val isCompEnabled by viewModel.isComparisonActive.collectAsState()
+      val compAmountVal by viewModel.comparisonLoanAmount.collectAsState()
+      val compRateVal by viewModel.comparisonInterestRate.collectAsState()
+      val compTermVal by viewModel.comparisonLoanTermYears.collectAsState()
+      val compExtraVal by viewModel.comparisonExtraPayment.collectAsState()
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Column(modifier = Modifier.weight(1f)) {
+          Text(
+            text = "Comparative Loan Engine ⚖️",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+          )
+          Text(
+            text = "Compare against an alternate scenario side-by-side",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+        }
+        Switch(
+          checked = isCompEnabled,
+          onCheckedChange = { viewModel.updateComparison(it, compAmountVal, compRateVal, compTermVal, compExtraVal) },
+          modifier = Modifier.testTag("comparison_switch")
+        )
+      }
+
+      if (isCompEnabled) {
+        Spacer(modifier = Modifier.height(12.dp))
+        var compAmountInput by remember { mutableStateOf(compAmountVal) }
+        var compRateInput by remember { mutableStateOf(compRateVal) }
+        var compTermInput by remember { mutableStateOf(compTermVal) }
+        var compExtraInput by remember { mutableStateOf(compExtraVal) }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          OutlinedTextField(
+            value = compAmountInput,
+            onValueChange = {
+              compAmountInput = it
+              viewModel.updateComparison(isCompEnabled, it, compRateInput, compTermInput, compExtraInput)
+            },
+            label = { Text("Amount (${cur})") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("comparison_amount_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          OutlinedTextField(
+            value = compRateInput,
+            onValueChange = {
+              compRateInput = it
+              viewModel.updateComparison(isCompEnabled, compAmountInput, it, compTermInput, compExtraInput)
+            },
+            label = { Text("Rate %") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("comparison_rate_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          OutlinedTextField(
+            value = compTermInput,
+            onValueChange = {
+              compTermInput = it
+              viewModel.updateComparison(isCompEnabled, compAmountInput, compRateInput, it, compExtraInput)
+            },
+            label = { Text("Term (Yrs)") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("comparison_term_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          OutlinedTextField(
+            value = compExtraInput,
+            onValueChange = {
+              compExtraInput = it
+              viewModel.updateComparison(isCompEnabled, compAmountInput, compRateInput, compTermInput, it)
+            },
+            label = { Text("Extra Payment (${cur})") },
+            singleLine = true,
+            modifier = Modifier.weight(1f).testTag("comparison_extra_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+        }
+      }
     }
   }
 }
@@ -852,8 +1107,299 @@ fun DashboardResultsCard(
         value = "$currency ${String.format("%,.2f", result.totalPaidAmount)}",
         isBold = true
       )
+
+      // Variable ARM Forecast
+      val isVarEnabled by viewModel.isVariableRateEnabled.collectAsState()
+      val varPeriodVal by viewModel.variablePeriodYears.collectAsState()
+      val varAdjustVal by viewModel.subsequentAdjustRate.collectAsState()
+
+      if (isVarEnabled) {
+          Spacer(modifier = Modifier.height(16.dp))
+          HorizontalDivider(color = MaterialTheme.colorScheme.background)
+          Spacer(modifier = Modifier.height(12.dp))
+          
+          Text(
+              text = "Adjustable Rate Forecast 📅",
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary
+          )
+          
+          Spacer(modifier = Modifier.height(8.dp))
+          
+          Card(
+              colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier.fillMaxWidth()
+          ) {
+              Column(modifier = Modifier.padding(12.dp)) {
+                  Row(
+                      modifier = Modifier.fillMaxWidth(),
+                      horizontalArrangement = Arrangement.SpaceBetween
+                  ) {
+                      Text("Year 1 to $varPeriodVal", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                      Text("${viewModel.interestRate.value}% standard rate", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                  }
+                  Spacer(modifier = Modifier.height(4.dp))
+                  Row(
+                      modifier = Modifier.fillMaxWidth(),
+                      horizontalArrangement = Arrangement.SpaceBetween
+                  ) {
+                      val directAdj = varAdjustVal.toDoubleOrNull() ?: 0.0
+                      val initialRate = viewModel.interestRate.value.toDoubleOrNull() ?: 0.0
+                      val resetRate = initialRate + directAdj
+                      Text("Year ${(varPeriodVal.toIntOrNull() ?: 5) + 1}+ Reset", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                      Text("${String.format("%.2f", resetRate)}% forecast", style = MaterialTheme.typography.bodySmall, color = if (directAdj >= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                  }
+              }
+          }
+      }
+
+      // Interest Rate Sensitivity Analyzer List
+      if (result.sensitivityAnalysis.isNotEmpty()) {
+          Spacer(modifier = Modifier.height(16.dp))
+          HorizontalDivider(color = MaterialTheme.colorScheme.background)
+          Spacer(modifier = Modifier.height(12.dp))
+          
+          Text(
+              text = "Interest Rate Sensitivity Matrix 📊",
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary
+          )
+          
+          Spacer(modifier = Modifier.height(4.dp))
+          Text(
+              text = "Estimate parameters across positive and negative rate variations:",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+          )
+          
+          Spacer(modifier = Modifier.height(8.dp))
+          
+          Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+              // Header Row
+              Row(
+                  modifier = Modifier
+                      .fillMaxWidth()
+                      .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                      .padding(vertical = 6.dp, horizontal = 8.dp),
+                  horizontalArrangement = Arrangement.SpaceBetween
+              ) {
+                  Text("Interest Rate", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                  Text("Monthly P&I", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.2f), textAlign = TextAlign.End)
+                  Text("Total Interest", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.3f), textAlign = TextAlign.End)
+              }
+              
+              result.sensitivityAnalysis.forEach { sItem ->
+                  val isBase = Math.abs(sItem.rate - (viewModel.interestRate.value.toDoubleOrNull() ?: 0.0)) < 0.01
+                  Row(
+                      modifier = Modifier
+                          .fillMaxWidth()
+                          .background(
+                              if (isBase) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+                              else Color.Transparent, 
+                              RoundedCornerShape(4.dp)
+                          )
+                          .padding(vertical = 6.dp, horizontal = 8.dp),
+                      horizontalArrangement = Arrangement.SpaceBetween,
+                      verticalAlignment = Alignment.CenterVertically
+                  ) {
+                      Text(
+                          text = "${String.format("%.2f", sItem.rate)}%" + if (isBase) " ★" else "", 
+                          style = MaterialTheme.typography.bodySmall, 
+                          fontWeight = if (isBase) FontWeight.Bold else FontWeight.Normal,
+                          color = if (isBase) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                          modifier = Modifier.weight(1f)
+                      )
+                      
+                      Column(modifier = Modifier.weight(1.2f), horizontalAlignment = Alignment.End) {
+                          Text(
+                              text = "$currency ${String.format("%,.2f", sItem.monthlyPayment)}", 
+                              style = MaterialTheme.typography.bodySmall,
+                              fontWeight = if (isBase) FontWeight.Bold else FontWeight.Normal
+                          )
+                          if (!isBase) {
+                              val sign = if (sItem.deltaMonthly >= 0) "+" else ""
+                              Text(
+                                  text = "$sign$currency ${String.format("%,.0f", sItem.deltaMonthly)}", 
+                                  style = MaterialTheme.typography.labelSmall,
+                                  color = if (sItem.deltaMonthly >= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                              )
+                          }
+                      }
+                      
+                      Column(modifier = Modifier.weight(1.3f), horizontalAlignment = Alignment.End) {
+                          Text(
+                              text = "$currency ${String.format("%,.0f", sItem.totalInterest)}", 
+                              style = MaterialTheme.typography.bodySmall,
+                              fontWeight = if (isBase) FontWeight.Bold else FontWeight.Normal
+                          )
+                          if (!isBase) {
+                              val sign = if (sItem.deltaInterest >= 0) "+" else ""
+                              Text(
+                                  text = "$sign$currency ${String.format("%,.0f", sItem.deltaInterest)}", 
+                                  style = MaterialTheme.typography.labelSmall,
+                                  color = if (sItem.deltaInterest >= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                              )
+                          }
+                      }
+                  }
+              }
+          }
+      }
+
+      // Comparative Analytics Side-by-Side Table
+      val isCompEnabled by viewModel.isComparisonActive.collectAsState()
+      val compResult by viewModel.comparisonResult.collectAsState()
+      
+      if (isCompEnabled && compResult.isValid) {
+          Spacer(modifier = Modifier.height(16.dp))
+          HorizontalDivider(color = MaterialTheme.colorScheme.background)
+          Spacer(modifier = Modifier.height(12.dp))
+          
+          Text(
+              text = "Scenario Comparison (A vs B) ⚖️",
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary
+          )
+          
+          Spacer(modifier = Modifier.height(8.dp))
+          
+          Card(
+              colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+              shape = RoundedCornerShape(12.dp),
+              modifier = Modifier.fillMaxWidth()
+          ) {
+              Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                  Row(modifier = Modifier.fillMaxWidth()) {
+                      Text("", modifier = Modifier.weight(1.2f))
+                      Text("Scenario A", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                      Text("Scenario B", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+                  }
+                  
+                  ComparisonDataRow(
+                      metric = "Loan Principal",
+                      valA = "$currency ${String.format("%,.0f", result.principalLoanAmount)}",
+                      valB = "$currency ${String.format("%,.0f", compResult.principalLoanAmount)}"
+                  )
+                  
+                  ComparisonDataRow(
+                      metric = "Base Monthly P&I",
+                      valA = "$currency ${String.format("%,.2f", result.baseMonthlyPayment)}",
+                      valB = "$currency ${String.format("%,.2f", compResult.baseMonthlyPayment)}"
+                  )
+                  
+                  ComparisonDataRow(
+                      metric = "Extra Payment",
+                      valA = "$currency ${String.format("%,.0f", result.totalExtraPaid / max(1, result.actualRepaymentMonths))}",
+                      valB = "$currency ${String.format("%,.0f", compResult.totalExtraPaid / max(1, compResult.actualRepaymentMonths))}"
+                  )
+
+                  ComparisonDataRow(
+                      metric = "Repayment Term",
+                      valA = "${result.actualRepaymentMonths} months",
+                      valB = "${compResult.actualRepaymentMonths} months"
+                  )
+
+                  ComparisonDataRow(
+                      metric = "Total Interest",
+                      valA = "$currency ${String.format("%,.0f", result.totalInterestPaid)}",
+                      valB = "$currency ${String.format("%,.0f", compResult.totalInterestPaid)}",
+                      highlightA = result.totalInterestPaid < compResult.totalInterestPaid,
+                      highlightB = compResult.totalInterestPaid < result.totalInterestPaid
+                  )
+
+                  ComparisonDataRow(
+                      metric = "Total Cost",
+                      valA = "$currency ${String.format("%,.0f", result.totalPaidAmount)}",
+                      valB = "$currency ${String.format("%,.0f", compResult.totalPaidAmount)}",
+                      highlightA = result.totalPaidAmount < compResult.totalPaidAmount,
+                      highlightB = compResult.totalPaidAmount < result.totalPaidAmount
+                  )
+                  
+                  Spacer(modifier = Modifier.height(4.dp))
+                  
+                  val interestDiff = result.totalInterestPaid - compResult.totalInterestPaid
+                  if (interestDiff != 0.0) {
+                      Card(
+                          colors = CardDefaults.cardColors(
+                              containerColor = if (interestDiff < 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                              else MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                          ),
+                          shape = RoundedCornerShape(8.dp),
+                          modifier = Modifier.fillMaxWidth()
+                      ) {
+                          Text(
+                              text = if (interestDiff < 0) {
+                                  "🎉 Scenario A saves you $currency ${String.format("%,.0f", Math.abs(interestDiff))} in lifetime interest compared to Scenario B!"
+                              } else {
+                                  "🎉 Scenario B saves you $currency ${String.format("%,.0f", Math.abs(interestDiff))} in lifetime interest compared to Scenario A!"
+                              },
+                              style = MaterialTheme.typography.bodySmall,
+                              fontWeight = FontWeight.Bold,
+                              color = if (interestDiff < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                              modifier = Modifier.padding(8.dp),
+                              textAlign = TextAlign.Center
+                          )
+                      }
+                  }
+              }
+          }
+      }
     }
   }
+}
+
+@Composable
+fun ComparisonDataRow(
+    metric: String,
+    valA: String,
+    valB: String,
+    highlightA: Boolean = false,
+    highlightB: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = metric,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1.2f)
+        )
+        Text(
+            text = valA,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (highlightA) FontWeight.Bold else FontWeight.Normal,
+            color = if (highlightA) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .weight(1.1f)
+                .background(
+                    if (highlightA) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent,
+                    RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+        )
+        Text(
+            text = valB,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (highlightB) FontWeight.Bold else FontWeight.Normal,
+            color = if (highlightB) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .weight(1.1f)
+                .background(
+                    if (highlightB) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f) else Color.Transparent,
+                    RoundedCornerShape(4.dp)
+                )
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+        )
+    }
 }
 
 @Composable
@@ -1110,6 +1656,117 @@ fun DebtPlannerTab(
     }
 
     Spacer(modifier = Modifier.height(16.dp))
+
+    // Saved Scenarios Persistence Card
+    val savedScenarios by viewModel.savedPlannerScenarios.collectAsState()
+    var scenarioNameInput by remember { mutableStateOf("") }
+
+    Card(
+      modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+      shape = RoundedCornerShape(16.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+      Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+          text = "Local Debt Plan Scenarios 💾",
+          style = MaterialTheme.typography.titleMedium,
+          fontWeight = FontWeight.Bold,
+          color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+          text = "Save and retrieve different debt lists and payment settings locally",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          OutlinedTextField(
+            value = scenarioNameInput,
+            onValueChange = { scenarioNameInput = it },
+            placeholder = { Text("e.g. Snowball Budget, Bonus Payoff", style = MaterialTheme.typography.bodySmall) },
+            label = { Text("Scenario Name") },
+            singleLine = true,
+            modifier = Modifier.weight(1.3f).testTag("scenario_name_save_input"),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          Button(
+            onClick = {
+              val name = scenarioNameInput.trim()
+              if (name.isNotEmpty()) {
+                viewModel.saveCurrentPlannerScenario(name)
+                scenarioNameInput = ""
+                Toast.makeText(context, "Scenario Saved Successfully!", Toast.LENGTH_SHORT).show()
+              } else {
+                Toast.makeText(context, "Please enter a scenario name", Toast.LENGTH_SHORT).show()
+              }
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.weight(0.9f).height(54.dp).testTag("save_scenario_button")
+          ) {
+            Text("Save Setup", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+          }
+        }
+
+        if (savedScenarios.isNotEmpty()) {
+          Spacer(modifier = Modifier.height(12.dp))
+          Text(text = "Saved Setups:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Spacer(modifier = Modifier.height(4.dp))
+          
+          Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            savedScenarios.forEach { sec ->
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                  .padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Column(modifier = Modifier.weight(1f)) {
+                  Text(text = sec.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                  Text(text = "Debts: ${sec.debts.size} | Budget: $cur${String.format("%.0f", sec.budget)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                  Button(
+                    onClick = { 
+                      viewModel.restorePlannerScenario(sec) 
+                      Toast.makeText(context, "Restored Scenario: ${sec.name}", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(32.dp).testTag("restore_scenario_${sec.name}")
+                  ) {
+                    Text("Load", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                  }
+
+                  Button(
+                    onClick = { 
+                      viewModel.deletePlannerScenario(sec.id)
+                      Toast.makeText(context, "Deleted Scenario", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(32.dp).testTag("delete_scenario_${sec.id}")
+                  ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     // Input settings card: Budget and strategy Choice
     Card(
