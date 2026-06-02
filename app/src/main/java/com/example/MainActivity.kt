@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import kotlin.math.max
+import kotlin.math.roundToInt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -86,6 +87,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ui.theme.MyApplicationTheme
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,7 +213,7 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
         val tabTitles = listOf(
           Translations.get(TranslationKey.CALCULATOR_TAB, lang),
           Translations.get(TranslationKey.SCHEDULE_TAB, lang),
-          Translations.get(TranslationKey.TAX_TAB, lang)
+          Translations.get(TranslationKey.DEBT_PLANNER_TAB, lang)
         )
         
         tabTitles.forEachIndexed { index, title ->
@@ -230,7 +239,7 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
         when (activeTab) {
           0 -> CalculatorTab(viewModel, result, lang, loanTypeVal)
           1 -> AmortizationTab(viewModel, result, lang, loanTypeVal)
-          2 -> TaxSavingsTab(viewModel, result, lang)
+          2 -> DebtPlannerTab(viewModel, lang)
         }
       }
     }
@@ -341,13 +350,12 @@ fun InputsCard(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
       ) {
-        val categories = listOf("Mortgage", "Personal", "Auto")
+        val categories = listOf("Mortgage", "Personal")
         categories.forEach { category ->
           val isSelected = loanTypeVal == category
           val label = when (category) {
             "Mortgage" -> Translations.get(TranslationKey.LOAN_TYPE_MORTGAGE, lang)
-            "Personal" -> Translations.get(TranslationKey.LOAN_TYPE_PERSONAL, lang)
-            else -> Translations.get(TranslationKey.LOAN_TYPE_AUTO, lang)
+            else -> Translations.get(TranslationKey.LOAN_TYPE_GENERAL, lang)
           }
 
           Box(
@@ -808,12 +816,7 @@ fun DashboardResultsCard(
         value = "$currency ${String.format("%,.2f", result.totalInterestPaid)}"
       )
       
-      if (loanTypeVal == "Mortgage") {
-        ResultsRowLabel(
-          label = Translations.get(TranslationKey.ESTIMATED_TAX_SAVINGS, lang),
-          value = "$currency ${String.format("%,.2f", result.totalTaxSavings)}"
-        )
-      }
+
 
       if (result.savingYearsEarly > 0.0) {
         Spacer(modifier = Modifier.height(4.dp))
@@ -1057,19 +1060,23 @@ fun YearlyAmortizationRow(item: AmortizationYearlyItem, currentSymbol: String) {
 }
 
 @Composable
-fun TaxSavingsTab(
+fun DebtPlannerTab(
   viewModel: LoanCalculatorViewModel,
-  result: CalculationResult,
   lang: LanguageCode
 ) {
-  if (!result.isValid) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-      Text(text = Translations.get(TranslationKey.ENTER_VALUES, lang))
-    }
-    return
-  }
-
+  val context = LocalContext.current
   val cur = lang.currencySymbol
+  val debts by viewModel.debtsList.collectAsState()
+  val budgetStr by viewModel.debtPlannerBudget.collectAsState()
+  val strategy by viewModel.debtPayoffStrategy.collectAsState()
+  val result by viewModel.debtPlannerResult.collectAsState()
+
+  var newDebtName by remember { mutableStateOf("") }
+  var newDebtBalance by remember { mutableStateOf("") }
+  var newDebtIntRate by remember { mutableStateOf("") }
+  var newDebtMinPay by remember { mutableStateOf("") }
+
+  val sumMinPayments = debts.sumOf { it.minimumPayment }
 
   Column(
     modifier = Modifier
@@ -1077,42 +1084,34 @@ fun TaxSavingsTab(
       .verticalScroll(rememberScrollState())
       .padding(16.dp)
   ) {
-    
-    // Overview explaining card
+    // Header Intro Card
     Card(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
-      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
       Column(modifier = Modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
           Icon(
             imageVector = Icons.Default.Info,
-            contentDescription = "info tax",
+            contentDescription = "info planner",
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(24.dp)
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
-            text = Translations.get(TranslationKey.TAX_TAB, lang),
+            text = Translations.get(TranslationKey.DEBT_PLANNER_HEADER, lang),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
           )
         }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-          text = Translations.get(TranslationKey.TAX_SAVINGS_EXPLAIN, lang),
-          style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
       }
     }
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Dynamic graphic bar representation of Tax savings per year
+    // Input settings card: Budget and strategy Choice
     Card(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
@@ -1120,68 +1119,81 @@ fun TaxSavingsTab(
     ) {
       Column(modifier = Modifier.padding(16.dp)) {
         Text(
-          text = "Annual Interest Tax Deduction Advantage ($cur)",
-          style = MaterialTheme.typography.titleSmall,
+          text = "Payoff Settings",
+          style = MaterialTheme.typography.titleMedium,
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.onSurface
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Simple custom simulated graph for vertical bar values of first 10 years
-        val slice = result.taxSavingsSchedule.take(10)
-        val maxSavings = result.taxSavingsSchedule.maxOfOrNull { it.estimatedTaxSavings } ?: 1.0
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Column(
+        OutlinedTextField(
+          value = budgetStr,
+          onValueChange = { viewModel.updatePlannerBudget(it) },
+          label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_BUDGET, lang) + " (${cur})") },
+          singleLine = true,
           modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp)
-            .padding(vertical = 4.dp),
-          verticalArrangement = Arrangement.Bottom
+            .testTag("debt_budget_input"),
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+          )
+        )
+
+        // Show warning if budget is less than required mins
+        if (debts.isNotEmpty() && (budgetStr.toDoubleOrNull() ?: 0.0) < sumMinPayments) {
+          Spacer(modifier = Modifier.height(8.dp))
+          Text(
+            text = "${Translations.get(TranslationKey.DEBT_PLANNER_MIN_BUDGET_WARN, lang)} $cur${String.format("%,.2f", sumMinPayments)}",
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium
+          )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+          text = Translations.get(TranslationKey.DEBT_PLANNER_STRATEGY, lang),
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = FontWeight.SemiBold,
+          color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Strategy Selector Toggle
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-          Row(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(120.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.Bottom
-          ) {
-            slice.forEach { item ->
-              val pct = (item.estimatedTaxSavings / maxSavings).toFloat().coerceIn(0.1f, 1f)
-              Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom,
-                modifier = Modifier.fillMaxHeight()
-              ) {
-                Text(
-                  text = "$cur${(item.estimatedTaxSavings / 100).toInt() * 100}",
-                  style = MaterialTheme.typography.labelSmall,
-                  fontSize = 8.sp,
-                  color = MaterialTheme.colorScheme.primary,
-                  fontWeight = FontWeight.Bold
+          listOf("Snowball", "Avalanche").forEach { option ->
+            val isSelected = strategy == option
+            val label = if (option == "Snowball") {
+              Translations.get(TranslationKey.DEBT_PLANNER_SNOWBALL, lang)
+            } else {
+              Translations.get(TranslationKey.DEBT_PLANNER_AVALANCHE, lang)
+            }
+            Box(
+              modifier = Modifier
+                .weight(1f)
+                .background(
+                  color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+                  shape = RoundedCornerShape(20.dp)
                 )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Box(
-                  modifier = Modifier
-                    .width(16.dp)
-                    .fillMaxHeight(pct)
-                    .background(
-                      color = MaterialTheme.colorScheme.primary,
-                      shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text(
-                  text = "Yr ${item.yearNumber}",
-                  style = MaterialTheme.typography.labelSmall,
-                  fontSize = 8.sp,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-              }
+                .clickable { viewModel.updateStrategy(option) }
+                .padding(vertical = 10.dp, horizontal = 8.dp),
+              contentAlignment = Alignment.Center
+            ) {
+              Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+              )
             }
           }
         }
@@ -1190,7 +1202,7 @@ fun TaxSavingsTab(
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // Yearly tax savings table list
+    // Form: Create a new debt card
     Card(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
@@ -1198,39 +1210,184 @@ fun TaxSavingsTab(
     ) {
       Column(modifier = Modifier.padding(16.dp)) {
         Text(
-          text = "Full Yearly Deduction Schedule",
-          style = MaterialTheme.typography.titleSmall,
+          text = Translations.get(TranslationKey.DEBT_PLANNER_ADD_DEBT, lang),
+          style = MaterialTheme.typography.titleMedium,
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.onSurface
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        result.taxSavingsSchedule.forEach { item ->
-          Column {
+        OutlinedTextField(
+          value = newDebtName,
+          onValueChange = { newDebtName = it },
+          label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_DEBT_NAME, lang)) },
+          singleLine = true,
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("debt_name_input"),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+          )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          OutlinedTextField(
+            value = newDebtBalance,
+            onValueChange = { newDebtBalance = it },
+            label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_BALANCE, lang) + " (${cur})") },
+            singleLine = true,
+            modifier = Modifier
+              .weight(1f)
+              .testTag("debt_balance_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          OutlinedTextField(
+            value = newDebtIntRate,
+            onValueChange = { newDebtIntRate = it },
+            label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_INT_RATE, lang)) },
+            singleLine = true,
+            modifier = Modifier
+              .weight(1f)
+              .testTag("debt_rate_input"),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = OutlinedTextFieldDefaults.colors(
+              focusedBorderColor = MaterialTheme.colorScheme.primary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+          value = newDebtMinPay,
+          onValueChange = { newDebtMinPay = it },
+          label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_MIN_PAY, lang) + " (${cur})") },
+          singleLine = true,
+          modifier = Modifier
+            .fillMaxWidth()
+            .testTag("debt_min_payment_input"),
+          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+          )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+          onClick = {
+            val name = newDebtName.trim()
+            val balance = newDebtBalance.toDoubleOrNull() ?: 0.0
+            val rate = newDebtIntRate.toDoubleOrNull() ?: 0.0
+            val minPay = newDebtMinPay.toDoubleOrNull() ?: 0.0
+            if (name.isNotEmpty() && balance > 0.0 && rate >= 0.0 && minPay >= 0.0) {
+              viewModel.addDebt(name, balance, rate, minPay)
+              newDebtName = ""
+              newDebtBalance = ""
+              newDebtIntRate = ""
+              newDebtMinPay = ""
+            } else {
+              Toast.makeText(context, "Please enter correct debt fields", Toast.LENGTH_SHORT).show()
+            }
+          },
+          modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .testTag("add_debt_button"),
+          shape = RoundedCornerShape(20.dp),
+          colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+          Text(text = "Add Debt", fontWeight = FontWeight.Bold)
+        }
+      }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // List of existing registered debts
+    if (debts.isEmpty()) {
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+      ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+              text = Translations.get(TranslationKey.DEBT_PLANNER_NO_DEBTS, lang),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              textAlign = TextAlign.Center
+            )
+        }
+      }
+    } else {
+      Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+      ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+          Text(
+            text = "${Translations.get(TranslationKey.DEBT_PLANNER_TOTAL_DEBTS, lang)} (${debts.size})",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+          )
+
+          Spacer(modifier = Modifier.height(12.dp))
+
+          debts.forEach { debt ->
             Row(
               modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-              horizontalArrangement = Arrangement.SpaceBetween
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
             ) {
-              Text(
-                text = "${Translations.get(TranslationKey.YEAR, lang)} ${item.yearNumber}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-              )
-              Column(horizontalAlignment = Alignment.End) {
+              Column(modifier = Modifier.weight(1f)) {
                 Text(
-                  text = "Saved: $cur${String.format("%,.2f", item.estimatedTaxSavings)}",
+                  text = debt.name,
                   style = MaterialTheme.typography.bodyMedium,
                   fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.primary
+                  color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                  text = "Interest Paid: $cur${String.format("%,.0f", item.interestPaid)}",
+                  text = "Rate: ${debt.interestRate}% | Min Pay: $cur${debt.minimumPayment}",
                   style = MaterialTheme.typography.bodySmall,
                   color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+              Text(
+                text = "$cur${String.format("%,.2f", debt.balance)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 12.dp)
+              )
+              Button(
+                onClick = { viewModel.deleteDebt(debt.id) },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.testTag("delete_debt_${debt.name}")
+              ) {
+                Text(
+                    text = Translations.get(TranslationKey.DEBT_PLANNER_DELETE, lang),
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.labelSmall
                 )
               }
             }
@@ -1238,7 +1395,175 @@ fun TaxSavingsTab(
           }
         }
       }
+
+      Spacer(modifier = Modifier.height(16.dp))
+
+      // Results overview panel
+      if (result.isValid) {
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          shape = RoundedCornerShape(16.dp),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+          Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
+              Text(
+                text = "Payoff Results Summary",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+              )
+
+              // Share / Export PDF Plan button
+              Button(
+                onClick = {
+                  val budget = budgetStr.toDoubleOrNull() ?: 0.0
+                  val success = PdfReportExporter.generateAndShareDebtPlanPdf(
+                    context = context,
+                    debts = debts,
+                    budget = budget,
+                    strategy = strategy,
+                    result = result,
+                    lang = lang
+                  )
+                  if (success) {
+                    Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+                  } else {
+                    Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+                  }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.testTag("export_debt_pdf_button")
+              ) {
+                Icon(Icons.Default.Share, contentDescription = "share", modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(Translations.get(TranslationKey.EXPORT_PDF, lang), style = MaterialTheme.typography.labelSmall)
+              }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ResultsRowLabel(
+              label = Translations.get(TranslationKey.DEBT_PLANNER_DEBT_FREE, lang),
+              value = "${result.debtFreeMonths} months",
+              isBold = true
+            )
+            ResultsRowLabel(
+              label = "Total Interest Accrued",
+              value = "$cur${String.format("%,.2f", result.totalInterestPaid)}"
+            )
+
+            if (result.timeSavedMonths > 0) {
+              Spacer(modifier = Modifier.height(8.dp))
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    RoundedCornerShape(8.dp)
+                  )
+                  .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Icon(
+                  imageVector = Icons.Default.Info,
+                  contentDescription = "savings highlight",
+                  tint = MaterialTheme.colorScheme.primary,
+                  modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                  text = "Saved ${result.timeSavedMonths} Months of Debt & $cur${String.format("%,.2f", result.interestSaved)} in Interests!",
+                  style = MaterialTheme.typography.bodySmall,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.primary
+                )
+              }
+            }
+          }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Debt portfolio breakdown visualization
+        DebtPortfolioBreakdown(debts = debts, currency = cur)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Interactive debt payoff progress chart
+        DebtPayoffChart(result = result, currency = cur, lang = lang)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Projected Months timeline
+        Card(
+          modifier = Modifier.fillMaxWidth(),
+          shape = RoundedCornerShape(16.dp),
+          colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+          Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+              text = Translations.get(TranslationKey.DEBT_PLANNER_TIMELINE, lang),
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Keep list length manageable by sampling every 3 months if it's longer than 24 months, showing final month
+            val sampledProjection = if (result.monthlyProjection.size > 24) {
+              val sampled = result.monthlyProjection.filterIndexed { index, _ -> index % 3 == 0 }.toMutableList()
+              if (result.monthlyProjection.lastOrNull() != null && sampled.lastOrNull()?.monthNumber != result.monthlyProjection.last().monthNumber) {
+                sampled.add(result.monthlyProjection.last())
+              }
+              sampled
+            } else {
+              result.monthlyProjection
+            }
+
+            sampledProjection.forEach { step ->
+              Row(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+              ) {
+                Text(
+                  text = "Month ${step.monthNumber}",
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Column(horizontalAlignment = Alignment.End) {
+                  Text(
+                    text = "Bal: $cur${String.format("%,.0f", step.totalRemainingBalance)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                  )
+                  Text(
+                    text = "Int charged: $cur${String.format("%,.1f", step.totalInterestPaidThisMonth)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                  )
+                }
+              }
+              HorizontalDivider(color = MaterialTheme.colorScheme.background)
+            }
+          }
+        }
+      }
     }
+
+    Spacer(modifier = Modifier.height(30.dp))
   }
 }
 
@@ -1357,3 +1682,413 @@ fun BreakdownDonutChart(
     }
   }
 }
+
+@Composable
+fun DebtPortfolioBreakdown(
+  debts: List<Debt>,
+  currency: String,
+  modifier: Modifier = Modifier
+) {
+  if (debts.isEmpty()) return
+  val total = debts.sumOf { it.balance }
+  if (total <= 0.0) return
+
+  val colors = listOf(
+    MaterialTheme.colorScheme.primary,
+    MaterialTheme.colorScheme.tertiary,
+    MaterialTheme.colorScheme.secondary,
+    MaterialTheme.colorScheme.error,
+    Color(0xFF8B5CF6), // Custom Purple
+    Color(0xFFF59E0B), // Custom Amber
+    Color(0xFFEC4899), // Custom Pink
+    Color(0xFF06B6D4)  // Custom Cyan
+  )
+
+  Card(
+    modifier = modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+  ) {
+    Column(modifier = Modifier.padding(16.dp)) {
+      Text(
+        text = "Starting Debt Portfolio Mix",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface
+      )
+      Spacer(modifier = Modifier.height(4.dp))
+      Text(
+        text = "Distribution of your registered starting debts of $currency${String.format("%,.0f", total)}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
+
+      Spacer(modifier = Modifier.height(14.dp))
+
+      // Segmented horizontal progress bar
+      Row(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(18.dp)
+          .background(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(9.dp)
+          ),
+        horizontalArrangement = Arrangement.Start
+      ) {
+        debts.forEachIndexed { index, debt ->
+          val ratio = (debt.balance / total).toFloat()
+          if (ratio > 0.005f) {
+            val color = colors[index % colors.size]
+            Box(
+              modifier = Modifier
+                .weight(ratio)
+                .fillMaxHeight()
+                .background(
+                  color = color,
+                  shape = RoundedCornerShape(
+                    topStart = if (index == 0) 9.dp else 0.dp,
+                    bottomStart = if (index == 0) 9.dp else 0.dp,
+                    topEnd = if (index == debts.size - 1) 9.dp else 0.dp,
+                    bottomEnd = if (index == debts.size - 1) 9.dp else 0.dp
+                  )
+                )
+            )
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(16.dp))
+
+      // Legend of debt distribution ratios
+      Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        debts.forEachIndexed { index, debt ->
+          val color = colors[index % colors.size]
+          val ratioPct = (debt.balance / total) * 100.0
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Row(
+              verticalAlignment = Alignment.CenterVertically,
+              modifier = Modifier.weight(1f)
+            ) {
+              Box(
+                modifier = Modifier
+                  .size(10.dp)
+                  .background(color = color, shape = CircleShape)
+              )
+              Spacer(modifier = Modifier.width(8.dp))
+              Text(
+                text = debt.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+              )
+            }
+            Text(
+              text = "$currency${String.format("%,.0f", debt.balance)} (${String.format("%.1f", ratioPct)}%)",
+              style = MaterialTheme.typography.bodySmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        }
+      }
+    }
+  }
+}
+
+@Composable
+fun DebtPayoffChart(
+  result: DebtPlannerResult,
+  currency: String,
+  lang: LanguageCode,
+  modifier: Modifier = Modifier
+) {
+  val projection = result.monthlyProjection
+  if (projection.isEmpty()) return
+
+  var selectedIndex by remember(projection) { mutableStateOf<Int?>(null) }
+  val textMeasurer = rememberTextMeasurer()
+  val primaryColor = MaterialTheme.colorScheme.primary
+  val secondaryColor = MaterialTheme.colorScheme.secondary
+  val outlineColor = MaterialTheme.colorScheme.outlineVariant
+  val bodyTextColor = MaterialTheme.colorScheme.onSurface
+
+  Card(
+    modifier = modifier.fillMaxWidth(),
+    shape = RoundedCornerShape(16.dp),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+  ) {
+    Column(modifier = Modifier.padding(16.dp)) {
+      Text(
+        text = "Debt Payoff Progress",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+      )
+      Text(
+        text = "Interactive visualization of your payoff timeline and balance reduction. Tap the chart to inspect any month.",
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
+
+      Spacer(modifier = Modifier.height(16.dp))
+
+      // Canvas for drawing the curve
+      BoxWithConstraints(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(180.dp)
+      ) {
+        val width = maxWidth
+        val height = maxHeight
+
+        Canvas(
+          modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(projection) {
+              detectTapGestures { offset ->
+                val plotWidth = size.width - 100f
+                val stepX = plotWidth / (projection.size - 1).coerceAtLeast(1)
+                val tappedX = offset.x - 70f
+                val index = (tappedX / stepX).roundToInt().coerceIn(0, projection.size - 1)
+                selectedIndex = index
+              }
+            }
+        ) {
+          val paddingLeft = 70f
+          val paddingRight = 30f
+          val paddingTop = 20f
+          val paddingBottom = 30f
+
+          val plotWidth = size.width - paddingLeft - paddingRight
+          val plotHeight = size.height - paddingTop - paddingBottom
+
+          if (projection.size < 2) return@Canvas
+
+          val maxVal = projection.maxOfOrNull { it.totalRemainingBalance } ?: 1.0
+          val minVal = 0.0
+          val valRange = maxVal - minVal
+
+          // 1. Draw grids and Y-axis scale
+          val gridLines = 4
+          for (i in 0..gridLines) {
+            val ratio = i.toFloat() / gridLines
+            val y = paddingTop + plotHeight * (1f - ratio)
+            drawLine(
+              color = outlineColor.copy(alpha = 0.4f),
+              start = Offset(paddingLeft, y),
+              end = Offset(paddingLeft + plotWidth, y),
+              strokeWidth = 1f,
+              pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+            )
+
+            // Y tick text
+            val tickVal = minVal + ratio * valRange
+            val tickLabel = if (tickVal >= 1000) {
+              "$currency${String.format("%.0fk", tickVal / 1000)}"
+            } else {
+              "$currency${tickVal.toInt()}"
+            }
+            drawText(
+              textMeasurer = textMeasurer,
+              text = tickLabel,
+              topLeft = Offset(5f, y - 14f),
+              style = TextStyle(
+                color = bodyTextColor.copy(alpha = 0.6f),
+                fontSize = 9.sp
+              )
+            )
+          }
+
+          // Generate coordinates
+          val points = projection.mapIndexed { index, month ->
+            val ratioX = index.toFloat() / (projection.size - 1)
+            val ratioY = (month.totalRemainingBalance - minVal) / valRange
+            Offset(
+              x = paddingLeft + ratioX * plotWidth,
+              y = paddingTop + plotHeight * (1f - ratioY).toFloat()
+            )
+          }
+
+          // 2. Build curve path
+          val path = Path().apply {
+            if (points.isNotEmpty()) {
+              moveTo(points.first().x, points.first().y)
+              for (i in 1 until points.size) {
+                val pPrev = points[i - 1]
+                val pCurr = points[i]
+                val controlX1 = pPrev.x + (pCurr.x - pPrev.x) / 2
+                val controlY1 = pPrev.y
+                val controlX2 = pPrev.x + (pCurr.x - pPrev.x) / 2
+                val controlY2 = pCurr.y
+                cubicTo(controlX1, controlY1, controlX2, controlY2, pCurr.x, pCurr.y)
+              }
+            }
+          }
+
+          // Build fill path (connect bottom right and bottom left)
+          val fillPath = Path().apply {
+            addPath(path)
+            if (points.isNotEmpty()) {
+              lineTo(points.last().x, paddingTop + plotHeight)
+              lineTo(points.first().x, paddingTop + plotHeight)
+              close()
+            }
+          }
+
+          // 3. Draw gradient filled area under the line
+          drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+              colors = listOf(
+                primaryColor.copy(alpha = 0.35f),
+                primaryColor.copy(alpha = 0.01f)
+              ),
+              startY = paddingTop,
+              endY = paddingTop + plotHeight
+            )
+          )
+
+          // 4. Draw curve line on top
+          drawPath(
+            path = path,
+            color = primaryColor,
+            style = Stroke(
+              width = 3.dp.toPx(),
+              cap = StrokeCap.Round
+            )
+          )
+
+          // 5. Draw interactive indicator if selected
+          selectedIndex?.let { index ->
+            if (index in points.indices) {
+              val selectedPoint = points[index]
+              // Draw vertical line
+              drawLine(
+                color = secondaryColor,
+                start = Offset(selectedPoint.x, paddingTop),
+                end = Offset(selectedPoint.x, paddingTop + plotHeight),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+              )
+
+              // Outer selection circle
+              drawCircle(
+                color = secondaryColor.copy(alpha = 0.35f),
+                radius = 8.dp.toPx(),
+                center = selectedPoint
+              )
+
+              // Inner selection dot
+              drawCircle(
+                color = secondaryColor,
+                radius = 4.dp.toPx(),
+                center = selectedPoint
+              )
+            }
+          }
+
+          // 6. Draw X-axis timeline markers
+          val xTicks = if (projection.size > 12) 5 else projection.size
+          for (i in 0 until xTicks) {
+            val ratio = i.toFloat() / (xTicks - 1)
+            val index = (ratio * (projection.size - 1)).roundToInt().coerceIn(0, projection.size - 1)
+            val point = points[index]
+
+            // Draw small notch
+            drawLine(
+              color = outlineColor,
+              start = Offset(point.x, paddingTop + plotHeight),
+              end = Offset(point.x, paddingTop + plotHeight + 4f),
+              strokeWidth = 2f
+            )
+
+            // X tick text label
+            val label = "M${projection[index].monthNumber}"
+            drawText(
+              textMeasurer = textMeasurer,
+              text = label,
+              topLeft = Offset(point.x - 14f, paddingTop + plotHeight + 6f),
+              style = TextStyle(
+                color = bodyTextColor.copy(alpha = 0.6f),
+                fontSize = 9.sp
+              )
+            )
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(10.dp))
+
+      // Selected Month Detail Display
+      val index = selectedIndex
+      if (index != null && index in projection.indices) {
+        val selectedMonth = projection[index]
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .background(
+              color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+              shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Column {
+            Text(
+              text = "Month ${selectedMonth.monthNumber} Inspector",
+              style = MaterialTheme.typography.labelMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+              text = "Total outstanding balance of all pool accounts.",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+
+          Column(horizontalAlignment = Alignment.End) {
+            Text(
+              text = "$currency${String.format("%,.2f", selectedMonth.totalRemainingBalance)}",
+              style = MaterialTheme.typography.titleSmall,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+              text = "Int charged: $currency${String.format("%,.2f", selectedMonth.totalInterestPaidThisMonth)}",
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+          }
+        }
+      } else {
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .background(
+              color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+              shape = RoundedCornerShape(12.dp)
+            )
+            .padding(10.dp),
+          contentAlignment = Alignment.Center
+        ) {
+          Text(
+            text = "💡 Tap or hold anywhere along the curve to inspect specific monthly values.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+          )
+        }
+      }
+    }
+  }
+}
+
