@@ -1,5 +1,5 @@
 {
-  "name": "Mortgage & Loan Calculator",
+  "name": "Loan Math",
   "description": "An intuitive, multi-language mortgage, general loan calculator, and debt payoff planner (Snowball/Avalanche strategies) with PDF report exportation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

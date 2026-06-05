@@ -93,9 +93,9 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     val interestRate = MutableStateFlow("6.5")
     val loanTermYears = MutableStateFlow("30")
     val extraPayment = MutableStateFlow("100")
-    val propertyTaxRate = MutableStateFlow("1.2") // Annual % rate
-    val homeInsurance = MutableStateFlow("1200") // Annual total $
-    val pmiRate = MutableStateFlow("0.7") // Annual % rate
+    val propertyTaxRate = MutableStateFlow("0") // Annual % rate
+    val homeInsurance = MutableStateFlow("0") // Annual total $
+    val pmiRate = MutableStateFlow("0") // Annual % rate
     val marginalTaxRate = MutableStateFlow("24") // Kept for backwards compatibility but not user-visible
 
     // Variable / Adjustable Rate Scenarios (ARM)
@@ -110,6 +110,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     // Loan Comparison Settings
     val isComparisonActive = MutableStateFlow(false)
     val comparisonLoanAmount = MutableStateFlow("350000")
+    val comparisonDownPayment = MutableStateFlow("70000")
     val comparisonInterestRate = MutableStateFlow("5.5")
     val comparisonLoanTermYears = MutableStateFlow("15")
     val comparisonExtraPayment = MutableStateFlow("0")
@@ -131,6 +132,11 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     private val _savedPlannerScenarios = MutableStateFlow<List<DebtPlannerScenario>>(emptyList())
     val savedPlannerScenarios: StateFlow<List<DebtPlannerScenario>> = _savedPlannerScenarios.asStateFlow()
 
+    // Ad-based Unlock States
+    val isComparisonUnlocked = MutableStateFlow(false)
+    val isDebtPlannerUnlocked = MutableStateFlow(false)
+    val isAdFreeVersion = MutableStateFlow(false)
+
     init {
         loadFromPrefs()
         recalculate()
@@ -146,9 +152,9 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         interestRate.value = prefs.getString("interestRate", "6.5") ?: "6.5"
         loanTermYears.value = prefs.getString("loanTermYears", "30") ?: "30"
         extraPayment.value = prefs.getString("extraPayment", "100") ?: "100"
-        propertyTaxRate.value = prefs.getString("propertyTaxRate", "1.2") ?: "1.2"
-        homeInsurance.value = prefs.getString("homeInsurance", "1200") ?: "1200"
-        pmiRate.value = prefs.getString("pmiRate", "0.7") ?: "0.7"
+        propertyTaxRate.value = prefs.getString("propertyTaxRate", "0") ?: "0"
+        homeInsurance.value = prefs.getString("homeInsurance", "0") ?: "0"
+        pmiRate.value = prefs.getString("pmiRate", "0") ?: "0"
         
         themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
 
@@ -158,6 +164,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         isComparisonActive.value = prefs.getBoolean("isComparisonActive", false)
         comparisonLoanAmount.value = prefs.getString("comparisonLoanAmount", "350000") ?: "350000"
+        comparisonDownPayment.value = prefs.getString("comparisonDownPayment", "70000") ?: "70000"
         comparisonInterestRate.value = prefs.getString("comparisonInterestRate", "5.5") ?: "5.5"
         comparisonLoanTermYears.value = prefs.getString("comparisonLoanTermYears", "15") ?: "15"
         comparisonExtraPayment.value = prefs.getString("comparisonExtraPayment", "0") ?: "0"
@@ -194,6 +201,40 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         debtPlannerBudget.value = prefs.getString("planner_budget", "1000") ?: "1000"
         debtPayoffStrategy.value = prefs.getString("payoff_strategy", "Snowball") ?: "Snowball"
+
+        isComparisonUnlocked.value = false
+        isDebtPlannerUnlocked.value = false
+        isAdFreeVersion.value = prefs.getBoolean("isAdFreeVersion", false)
+    }
+
+    fun purchaseAdFree() {
+        isAdFreeVersion.value = true
+        prefs.edit().putBoolean("isAdFreeVersion", true).apply()
+    }
+
+    fun resetAdFree() {
+        isAdFreeVersion.value = false
+        prefs.edit().putBoolean("isAdFreeVersion", false).apply()
+    }
+
+    fun unlockComparisonFeature() {
+        isComparisonUnlocked.value = true
+        prefs.edit().putBoolean("isComparisonUnlocked", true).apply()
+    }
+
+    fun lockComparisonFeature() {
+        isComparisonUnlocked.value = false
+        prefs.edit().putBoolean("isComparisonUnlocked", false).apply()
+    }
+
+    fun unlockDebtPlannerFeature() {
+        isDebtPlannerUnlocked.value = true
+        prefs.edit().putBoolean("isDebtPlannerUnlocked", true).apply()
+    }
+
+    fun lockDebtPlannerFeature() {
+        isDebtPlannerUnlocked.value = false
+        prefs.edit().putBoolean("isDebtPlannerUnlocked", false).apply()
     }
 
     private fun saveInputsToPrefs() {
@@ -215,6 +256,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
             putBoolean("isComparisonActive", isComparisonActive.value)
             putString("comparisonLoanAmount", comparisonLoanAmount.value)
+            putString("comparisonDownPayment", comparisonDownPayment.value)
             putString("comparisonInterestRate", comparisonInterestRate.value)
             putString("comparisonLoanTermYears", comparisonLoanTermYears.value)
             putString("comparisonExtraPayment", comparisonExtraPayment.value)
@@ -250,9 +292,10 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         recalculate()
     }
 
-    fun updateComparison(enabled: Boolean, amount: String, rate: String, term: String, extraAmt: String) {
+    fun updateComparison(enabled: Boolean, amount: String, downPaymentVal: String, rate: String, term: String, extraAmt: String) {
         isComparisonActive.value = enabled
         comparisonLoanAmount.value = amount
+        comparisonDownPayment.value = downPaymentVal
         comparisonInterestRate.value = rate
         comparisonLoanTermYears.value = term
         comparisonExtraPayment.value = extraAmt
@@ -335,7 +378,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
             return
         }
 
-        val totalBudget = debtPlannerBudget.value.toDoubleOrNull() ?: 0.0
+        val totalBudget = debtPlannerBudget.value.parseToDoubleOrNull() ?: 0.0
         val strategy = debtPayoffStrategy.value
 
         // 1. Run principal simulation inside selected strategy
@@ -465,24 +508,24 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     private fun recalculate() {
         val currentType = loanType.value
-        val hp = homePrice.value.toDoubleOrNull() ?: 0.0
-        val dp = downPayment.value.toDoubleOrNull() ?: 0.0
+        val hp = homePrice.value.parseToDoubleOrNull() ?: 0.0
+        val dp = downPayment.value.parseToDoubleOrNull() ?: 0.0
         
         // Principal Loan Amount
         val p = if (currentType == "Mortgage") {
             max(0.0, hp - dp)
         } else {
-            loanAmountInput.value.toDoubleOrNull() ?: 0.0
+            loanAmountInput.value.parseToDoubleOrNull() ?: 0.0
         }
 
-        val annualRate = interestRate.value.toDoubleOrNull() ?: 0.0
+        val annualRate = interestRate.value.parseToDoubleOrNull() ?: 0.0
         val years = loanTermYears.value.toIntOrNull() ?: 0
-        val extra = extraPayment.value.toDoubleOrNull() ?: 0.0
+        val extra = extraPayment.value.parseToDoubleOrNull() ?: 0.0
 
-        val rTax = propertyTaxRate.value.toDoubleOrNull() ?: 0.0
-        val insAnnual = homeInsurance.value.toDoubleOrNull() ?: 0.0
-        val rPmi = pmiRate.value.toDoubleOrNull() ?: 0.0
-        val taxRate = marginalTaxRate.value.toDoubleOrNull() ?: 0.0
+        val rTax = propertyTaxRate.value.parseToDoubleOrNull() ?: 0.0
+        val insAnnual = homeInsurance.value.parseToDoubleOrNull() ?: 0.0
+        val rPmi = pmiRate.value.parseToDoubleOrNull() ?: 0.0
+        val taxRate = marginalTaxRate.value.parseToDoubleOrNull() ?: 0.0
 
         if (p <= 0.0 || annualRate < 0.0 || years <= 0) {
             _calculationResult.value = CalculationResult(isValid = false)
@@ -513,7 +556,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         // Variable Rate Scenario Details
         val variableYrs = variablePeriodYears.value.toIntOrNull() ?: 5
-        val rateAdjustment = subsequentAdjustRate.value.toDoubleOrNull() ?: 1.5
+        val rateAdjustment = subsequentAdjustRate.value.parseToDoubleOrNull() ?: 1.5
         val isVarEnabled = isVariableRateEnabled.value
         val varLimitMonths = variableYrs * 12
         var hasAdjusted = false
@@ -682,12 +725,19 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     fun recalculateComparison() {
         if (!isComparisonActive.value) return
 
-        val amount = comparisonLoanAmount.value.toDoubleOrNull() ?: 350000.0
-        val annualRate = comparisonInterestRate.value.toDoubleOrNull() ?: 5.5
-        val years = comparisonLoanTermYears.value.toIntOrNull() ?: 15
-        val extra = comparisonExtraPayment.value.toDoubleOrNull() ?: 0.0
+        val amount = comparisonLoanAmount.value.parseToDoubleOrNull() ?: 350000.0
+        val downPay = if (loanType.value == "Mortgage") {
+            comparisonDownPayment.value.parseToDoubleOrNull() ?: 0.0
+        } else {
+            0.0
+        }
+        val p = if (loanType.value == "Mortgage") max(0.0, amount - downPay) else amount
 
-        if (amount <= 0.0 || annualRate < 0.0 || years <= 0) {
+        val annualRate = comparisonInterestRate.value.parseToDoubleOrNull() ?: 5.5
+        val years = comparisonLoanTermYears.value.toIntOrNull() ?: 15
+        val extra = comparisonExtraPayment.value.parseToDoubleOrNull() ?: 0.0
+
+        if (p <= 0.0 || annualRate < 0.0 || years <= 0) {
             _comparisonResult.value = CalculationResult(isValid = false)
             return
         }
@@ -697,15 +747,15 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         // Calculate Base P&I Monthly Payment
         val monthlyPi = if (monthlyRate > 0.0) {
-            amount * (monthlyRate * (1.0 + monthlyRate).pow(totalMonths.toDouble())) /
+            p * (monthlyRate * (1.0 + monthlyRate).pow(totalMonths.toDouble())) /
                     ((1.0 + monthlyRate).pow(totalMonths.toDouble()) - 1.0)
         } else {
-            amount / totalMonths
+            p / totalMonths
         }
 
         // Generate Amortization Schedule
         val schedule = mutableListOf<AmortizationItem>()
-        var balance = amount
+        var balance = p
         var totalInterestToDate = 0.0
         var monthCounter = 0
 
@@ -748,13 +798,13 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         _comparisonResult.value = CalculationResult(
             isValid = true,
-            principalLoanAmount = amount,
+            principalLoanAmount = p,
             baseMonthlyPayment = monthlyPi,
             totalMonthlyPaymentWithFees = monthlyPi + extra,
             schedule = schedule,
             totalInterestPaid = totalInterestPaid,
             totalExtraPaid = schedule.sumOf { it.extraPayment },
-            totalPaidAmount = amount + totalInterestPaid + schedule.sumOf { it.extraPayment },
+            totalPaidAmount = p + totalInterestPaid + schedule.sumOf { it.extraPayment },
             actualRepaymentMonths = finalRepaymentDurationMonths,
             savingYearsEarly = max(0.0, ((totalMonths - finalRepaymentDurationMonths) / 12.0))
         )
