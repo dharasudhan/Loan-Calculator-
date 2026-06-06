@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -539,8 +540,9 @@ fun InputsCard(
         OutlinedTextField(
           value = homePriceInput,
           onValueChange = {
-            homePriceInput = it
-            viewModel.homePrice.value = it
+            val coerced = coerceInputString(it, 100000000.0, true)
+            homePriceInput = coerced
+            viewModel.homePrice.value = coerced
             viewModel.updateInputs()
           },
           label = { Text("${Translations.get(TranslationKey.HOME_PRICE, lang)} (${cur})") },
@@ -561,8 +563,10 @@ fun InputsCard(
         OutlinedTextField(
           value = downPaymentInput,
           onValueChange = {
-            downPaymentInput = it
-            viewModel.downPayment.value = it
+            val maxDp = homePriceInput.parseToDoubleOrNull() ?: 100000000.0
+            val coerced = coerceInputString(it, maxDp, true)
+            downPaymentInput = coerced
+            viewModel.downPayment.value = coerced
             viewModel.updateInputs()
           },
           label = { Text("${Translations.get(TranslationKey.DOWN_PAYMENT, lang)} (${cur})") },
@@ -580,8 +584,9 @@ fun InputsCard(
         OutlinedTextField(
           value = loanAmtInput,
           onValueChange = {
-            loanAmtInput = it
-            viewModel.loanAmountInput.value = it
+            val coerced = coerceInputString(it, 100000000.0, true)
+            loanAmtInput = coerced
+            viewModel.loanAmountInput.value = coerced
             viewModel.updateInputs()
           },
           label = { Text("${Translations.get(TranslationKey.LOAN_AMOUNT, lang)} (${cur})") },
@@ -607,8 +612,9 @@ fun InputsCard(
         OutlinedTextField(
           value = intRateInput,
           onValueChange = {
-            intRateInput = it
-            viewModel.interestRate.value = it
+            val coerced = coerceInputString(it, 35.0, false)
+            intRateInput = coerced
+            viewModel.interestRate.value = coerced
             viewModel.updateInputs()
           },
           label = { Text("${Translations.get(TranslationKey.ANNUAL_INTEREST, lang)} (%)") },
@@ -649,7 +655,7 @@ fun InputsCard(
         IconButton(
           onClick = {
             val curVal = intRateInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = (curVal + 0.25).format(2)
+            val newVal = min(35.0, curVal + 0.25).format(2)
             intRateInput = newVal
             viewModel.interestRate.value = newVal
             viewModel.updateInputs()
@@ -671,8 +677,9 @@ fun InputsCard(
       OutlinedTextField(
         value = loanTermInput,
         onValueChange = {
-          loanTermInput = it
-          viewModel.loanTermYears.value = it
+          val coerced = coerceInputString(it, 50.0, true)
+          loanTermInput = coerced
+          viewModel.loanTermYears.value = coerced
           viewModel.updateInputs()
         },
         label = { Text(Translations.get(TranslationKey.LOAN_TERM, lang)) },
@@ -697,8 +704,9 @@ fun InputsCard(
         OutlinedTextField(
           value = extraPaymentInput,
           onValueChange = {
-            extraPaymentInput = it
-            viewModel.extraPayment.value = it
+            val coerced = coerceInputString(it, 1000000.0, true)
+            extraPaymentInput = coerced
+            viewModel.extraPayment.value = coerced
             viewModel.updateInputs()
           },
           label = { Text("${Translations.get(TranslationKey.EXTRA_PAYMENT, lang)} (${cur})") },
@@ -719,7 +727,7 @@ fun InputsCard(
         IconButton(
           onClick = {
             val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = max(0.0, curVal - 50.0).toInt().toString()
+            val newVal = max(0.0, curVal - 50.0).toLong().toString()
             extraPaymentInput = newVal
             viewModel.extraPayment.value = newVal
             viewModel.updateInputs()
@@ -740,7 +748,7 @@ fun InputsCard(
         IconButton(
           onClick = {
             val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = (curVal + 50.0).toInt().toString()
+            val newVal = min(1000000.0, curVal + 50.0).toLong().toString()
             extraPaymentInput = newVal
             viewModel.extraPayment.value = newVal
             viewModel.updateInputs()
@@ -806,27 +814,11 @@ fun InputsCard(
           Column(modifier = Modifier.padding(top = 8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
               OutlinedTextField(
-                value = propTaxInput,
-                onValueChange = {
-                  propTaxInput = it
-                  viewModel.propertyTaxRate.value = it
-                  viewModel.updateInputs()
-                },
-                label = { Text(Translations.get(TranslationKey.PROP_TAX_PERCENT, lang)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = OutlinedTextFieldDefaults.colors(
-                  focusedBorderColor = MaterialTheme.colorScheme.primary,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-              )
-
-              OutlinedTextField(
                 value = insInput,
                 onValueChange = {
-                  insInput = it
-                  viewModel.homeInsurance.value = it
+                  val coerced = coerceInputString(it, 200000.0, true)
+                  insInput = coerced
+                  viewModel.homeInsurance.value = coerced
                   viewModel.updateInputs()
                 },
                 label = { Text(Translations.get(TranslationKey.INSURANCE_ANNUAL, lang)) },
@@ -838,36 +830,16 @@ fun InputsCard(
                   unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                 )
               )
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
               OutlinedTextField(
                 value = pmiInput,
                 onValueChange = {
-                  pmiInput = it
-                  viewModel.pmiRate.value = it
+                  val coerced = coerceInputString(it, 5.0, false)
+                  pmiInput = coerced
+                  viewModel.pmiRate.value = coerced
                   viewModel.updateInputs()
                 },
                 label = { Text(Translations.get(TranslationKey.PMI_PERCENT, lang)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = OutlinedTextFieldDefaults.colors(
-                  focusedBorderColor = MaterialTheme.colorScheme.primary,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-              )
-
-              OutlinedTextField(
-                value = margTaxInput,
-                onValueChange = {
-                  margTaxInput = it
-                  viewModel.marginalTaxRate.value = it
-                  viewModel.updateInputs()
-                },
-                label = { Text(Translations.get(TranslationKey.BORDER_TAX_PERCENT, lang)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -922,8 +894,9 @@ fun InputsCard(
           OutlinedTextField(
             value = varPeriodInput,
             onValueChange = {
-              varPeriodInput = it
-              viewModel.updateVariableRate(isVarEnabled, it, varAdjustInput)
+              val coerced = coerceInputString(it, 50.0, true)
+              varPeriodInput = coerced
+              viewModel.updateVariableRate(isVarEnabled, coerced, varAdjustInput)
             },
             label = { Text(Translations.get(TranslationKey.ARM_FIXED_PERIOD, lang)) },
             singleLine = true,
@@ -938,8 +911,9 @@ fun InputsCard(
           OutlinedTextField(
             value = varAdjustInput,
             onValueChange = {
-              varAdjustInput = it
-              viewModel.updateVariableRate(isVarEnabled, varPeriodInput, it)
+              val coerced = coerceInputString(it, 20.0, false)
+              varAdjustInput = coerced
+              viewModel.updateVariableRate(isVarEnabled, varPeriodInput, coerced)
             },
             label = { Text(Translations.get(TranslationKey.ARM_RESET_ADJ, lang)) },
             singleLine = true,
@@ -1625,7 +1599,10 @@ fun DebtPlannerTab(
 
         OutlinedTextField(
           value = budgetStr,
-          onValueChange = { viewModel.updatePlannerBudget(it) },
+          onValueChange = {
+            val coerced = coerceInputString(it, 1000000.0, true)
+            viewModel.updatePlannerBudget(coerced)
+          },
           label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_BUDGET, lang) + " (${cur})") },
           singleLine = true,
           modifier = Modifier
@@ -1731,7 +1708,10 @@ fun DebtPlannerTab(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
           OutlinedTextField(
             value = newDebtBalance,
-            onValueChange = { newDebtBalance = it },
+            onValueChange = {
+              val coerced = coerceInputString(it, 10000000.0, true)
+              newDebtBalance = coerced
+            },
             label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_BALANCE, lang) + " (${cur})") },
             singleLine = true,
             modifier = Modifier
@@ -1746,7 +1726,10 @@ fun DebtPlannerTab(
 
           OutlinedTextField(
             value = newDebtIntRate,
-            onValueChange = { newDebtIntRate = it },
+            onValueChange = {
+              val coerced = coerceInputString(it, 100.0, false)
+              newDebtIntRate = coerced
+            },
             label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_INT_RATE, lang)) },
             singleLine = true,
             modifier = Modifier
@@ -1764,7 +1747,11 @@ fun DebtPlannerTab(
 
         OutlinedTextField(
           value = newDebtMinPay,
-          onValueChange = { newDebtMinPay = it },
+          onValueChange = {
+            val maxMin = newDebtBalance.parseToDoubleOrNull() ?: 1000000.0
+            val coerced = coerceInputString(it, maxMin, true)
+            newDebtMinPay = coerced
+          },
           label = { Text(Translations.get(TranslationKey.DEBT_PLANNER_MIN_PAY, lang) + " (${cur})") },
           singleLine = true,
           modifier = Modifier
@@ -2010,32 +1997,124 @@ fun DebtPlannerTab(
         }
 
         sampledProjection.forEach { step ->
-          Row(
+          Column(
             modifier = Modifier
               .fillMaxWidth()
-              .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+              .padding(vertical = 8.dp)
           ) {
-            Text(
-              text = "Month ${step.monthNumber}",
-              style = MaterialTheme.typography.bodyMedium,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Column(horizontalAlignment = Alignment.End) {
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.SpaceBetween,
+              verticalAlignment = Alignment.CenterVertically
+            ) {
               Text(
-                text = "Bal: $cur${String.format("%,.0f", step.totalRemainingBalance)}",
+                text = "Month ${step.monthNumber}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface
               )
-              Text(
-                text = "Int charged: $cur${String.format("%,.1f", step.totalInterestPaidThisMonth)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-              )
+
+              Column(horizontalAlignment = Alignment.End) {
+                Text(
+                  text = "Bal: $cur${String.format("%,.0f", step.totalRemainingBalance)}",
+                  style = MaterialTheme.typography.bodyMedium,
+                  fontWeight = FontWeight.Bold,
+                  color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                  text = "Int charged: $cur${String.format("%,.1f", step.totalInterestPaidThisMonth)}",
+                  style = MaterialTheme.typography.bodySmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+              }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Split per loan
+            Card(
+              modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 8.dp, top = 2.dp, bottom = 4.dp),
+              colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+              ),
+              shape = RoundedCornerShape(8.dp)
+            ) {
+              Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+              ) {
+                debts.forEach { debt ->
+                  val payment = step.payments[debt.id] ?: 0.0
+                  val remainingBal = step.balances[debt.id] ?: 0.0
+
+                  if (payment > 0.0 || remainingBal > 0.0) {
+                    Row(
+                      modifier = Modifier.fillMaxWidth(),
+                      horizontalArrangement = Arrangement.SpaceBetween,
+                      verticalAlignment = Alignment.CenterVertically
+                    ) {
+                      Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                      ) {
+                        Box(
+                          modifier = Modifier
+                            .size(6.dp)
+                            .background(
+                              if (remainingBal == 0.0) MaterialTheme.colorScheme.error
+                              else MaterialTheme.colorScheme.primary,
+                              CircleShape
+                            )
+                        )
+                        Text(
+                          text = debt.name,
+                          style = MaterialTheme.typography.labelMedium,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (remainingBal == 0.0 && payment > 0.0) {
+                          Box(
+                            modifier = Modifier
+                              .background(
+                                MaterialTheme.colorScheme.tertiaryContainer,
+                                RoundedCornerShape(4.dp)
+                              )
+                              .padding(horizontal = 4.dp, vertical = 2.dp)
+                          ) {
+                            Text(
+                              text = "PAID OFF",
+                              style = MaterialTheme.typography.labelSmall,
+                              fontSize = 8.sp,
+                              fontWeight = FontWeight.Bold,
+                              color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                          }
+                        }
+                      }
+
+                      Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                      ) {
+                        Text(
+                          text = "Paid: $cur${String.format("%,.0f", payment)}",
+                          style = MaterialTheme.typography.bodySmall,
+                          fontWeight = FontWeight.SemiBold,
+                          color = if (payment > 0.0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                          text = "Bal: $cur${String.format("%,.0f", remainingBal)}",
+                          style = MaterialTheme.typography.bodySmall,
+                          color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
           HorizontalDivider(color = MaterialTheme.colorScheme.background)
@@ -3352,8 +3431,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compAmountInput,
               onValueChange = {
-                compAmountInput = it
-                viewModel.updateComparison(true, it, compDownPaymentInput, compRateInput, compTermInput, compExtraInput)
+                val coerced = coerceInputString(it, 100000000.0, true)
+                compAmountInput = coerced
+                viewModel.updateComparison(true, coerced, compDownPaymentInput, compRateInput, compTermInput, compExtraInput)
               },
               label = { Text("${Translations.get(TranslationKey.HOME_PRICE, lang)} ($cur)") },
               singleLine = true,
@@ -3368,8 +3448,10 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compDownPaymentInput,
               onValueChange = {
-                compDownPaymentInput = it
-                viewModel.updateComparison(true, compAmountInput, it, compRateInput, compTermInput, compExtraInput)
+                val maxDp = compAmountInput.parseToDoubleOrNull() ?: 100000000.0
+                val coerced = coerceInputString(it, maxDp, true)
+                compDownPaymentInput = coerced
+                viewModel.updateComparison(true, compAmountInput, coerced, compRateInput, compTermInput, compExtraInput)
               },
               label = { Text("${Translations.get(TranslationKey.DOWN_PAYMENT, lang)} ($cur)") },
               singleLine = true,
@@ -3388,8 +3470,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compRateInput,
               onValueChange = {
-                compRateInput = it
-                viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, it, compTermInput, compExtraInput)
+                val coerced = coerceInputString(it, 35.0, false)
+                compRateInput = coerced
+                viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, coerced, compTermInput, compExtraInput)
               },
               label = { Text("${Translations.get(TranslationKey.ANNUAL_INTEREST, lang)} %") },
               singleLine = true,
@@ -3404,8 +3487,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compTermInput,
               onValueChange = {
-                compTermInput = it
-                viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, compRateInput, it, compExtraInput)
+                val coerced = coerceInputString(it, 50.0, true)
+                compTermInput = coerced
+                viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, compRateInput, coerced, compExtraInput)
               },
               label = { Text(Translations.get(TranslationKey.LOAN_TERM, lang)) },
               singleLine = true,
@@ -3423,8 +3507,9 @@ fun ComparisonTab(
           OutlinedTextField(
             value = compExtraInput,
             onValueChange = {
-              compExtraInput = it
-              viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, compRateInput, compTermInput, it)
+              val coerced = coerceInputString(it, 1000000.0, true)
+              compExtraInput = coerced
+              viewModel.updateComparison(true, compAmountInput, compDownPaymentInput, compRateInput, compTermInput, coerced)
             },
             label = { Text(Translations.get(TranslationKey.EXTRA_PAYMENT, lang)) },
             singleLine = true,
@@ -3440,8 +3525,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compAmountInput,
               onValueChange = {
-                compAmountInput = it
-                viewModel.updateComparison(true, it, "0", compRateInput, compTermInput, compExtraInput)
+                val coerced = coerceInputString(it, 100000000.0, true)
+                compAmountInput = coerced
+                viewModel.updateComparison(true, coerced, "0", compRateInput, compTermInput, compExtraInput)
               },
               label = { Text("${Translations.get(TranslationKey.LOAN_AMOUNT, lang)} ($cur)") },
               singleLine = true,
@@ -3456,8 +3542,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compRateInput,
               onValueChange = {
-                compRateInput = it
-                viewModel.updateComparison(true, compAmountInput, "0", it, compTermInput, compExtraInput)
+                val coerced = coerceInputString(it, 35.0, false)
+                compRateInput = coerced
+                viewModel.updateComparison(true, compAmountInput, "0", coerced, compTermInput, compExtraInput)
               },
               label = { Text("${Translations.get(TranslationKey.ANNUAL_INTEREST, lang)} %") },
               singleLine = true,
@@ -3476,8 +3563,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compTermInput,
               onValueChange = {
-                compTermInput = it
-                viewModel.updateComparison(true, compAmountInput, "0", compRateInput, it, compExtraInput)
+                val coerced = coerceInputString(it, 50.0, true)
+                compTermInput = coerced
+                viewModel.updateComparison(true, compAmountInput, "0", compRateInput, coerced, compExtraInput)
               },
               label = { Text(Translations.get(TranslationKey.LOAN_TERM, lang)) },
               singleLine = true,
@@ -3492,8 +3580,9 @@ fun ComparisonTab(
             OutlinedTextField(
               value = compExtraInput,
               onValueChange = {
-                compExtraInput = it
-                viewModel.updateComparison(true, compAmountInput, "0", compRateInput, compTermInput, it)
+                val coerced = coerceInputString(it, 1000000.0, true)
+                compExtraInput = coerced
+                viewModel.updateComparison(true, compAmountInput, "0", compRateInput, compTermInput, coerced)
               },
               label = { Text(Translations.get(TranslationKey.EXTRA_PAYMENT, lang)) },
               singleLine = true,

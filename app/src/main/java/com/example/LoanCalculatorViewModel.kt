@@ -87,21 +87,21 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     // Input States
     val loanType = MutableStateFlow("Mortgage") // "Mortgage", "Personal" -> Merged Personal Loan & Auto Loan
-    val homePrice = MutableStateFlow("400000")
-    val downPayment = MutableStateFlow("80000")
-    val loanAmountInput = MutableStateFlow("50000") // direct loan amount for general loans
-    val interestRate = MutableStateFlow("6.5")
-    val loanTermYears = MutableStateFlow("30")
-    val extraPayment = MutableStateFlow("100")
+    val homePrice = MutableStateFlow("0")
+    val downPayment = MutableStateFlow("0")
+    val loanAmountInput = MutableStateFlow("0") // direct loan amount for general loans
+    val interestRate = MutableStateFlow("0")
+    val loanTermYears = MutableStateFlow("0")
+    val extraPayment = MutableStateFlow("0")
     val propertyTaxRate = MutableStateFlow("0") // Annual % rate
     val homeInsurance = MutableStateFlow("0") // Annual total $
     val pmiRate = MutableStateFlow("0") // Annual % rate
-    val marginalTaxRate = MutableStateFlow("24") // Kept for backwards compatibility but not user-visible
+    val marginalTaxRate = MutableStateFlow("0") // Kept for backwards compatibility but not user-visible
 
     // Variable / Adjustable Rate Scenarios (ARM)
     val isVariableRateEnabled = MutableStateFlow(false)
-    val variablePeriodYears = MutableStateFlow("5") // Period after which rate changes (e.g., 5, 7, 10 years)
-    val subsequentAdjustRate = MutableStateFlow("1.5") // e.g. +1.5%
+    val variablePeriodYears = MutableStateFlow("0") // Period after which rate changes (e.g., 5, 7, 10 years)
+    val subsequentAdjustRate = MutableStateFlow("0") // e.g. +1.5%
 
     // Calculations Flow Outputs
     private val _calculationResult = MutableStateFlow(CalculationResult())
@@ -109,10 +109,10 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     // Loan Comparison Settings
     val isComparisonActive = MutableStateFlow(false)
-    val comparisonLoanAmount = MutableStateFlow("350000")
-    val comparisonDownPayment = MutableStateFlow("70000")
-    val comparisonInterestRate = MutableStateFlow("5.5")
-    val comparisonLoanTermYears = MutableStateFlow("15")
+    val comparisonLoanAmount = MutableStateFlow("0")
+    val comparisonDownPayment = MutableStateFlow("0")
+    val comparisonInterestRate = MutableStateFlow("0")
+    val comparisonLoanTermYears = MutableStateFlow("0")
     val comparisonExtraPayment = MutableStateFlow("0")
 
     private val _comparisonResult = MutableStateFlow(CalculationResult())
@@ -122,7 +122,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     private val _debtsList = MutableStateFlow<List<Debt>>(emptyList())
     val debtsList: StateFlow<List<Debt>> = _debtsList.asStateFlow()
 
-    val debtPlannerBudget = MutableStateFlow("1000")
+    val debtPlannerBudget = MutableStateFlow("0")
     val debtPayoffStrategy = MutableStateFlow("Snowball") // "Snowball", "Avalanche"
 
     private val _debtPlannerResult = MutableStateFlow(DebtPlannerResult())
@@ -146,27 +146,27 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     private fun loadFromPrefs() {
         loanType.value = prefs.getString("loanType", "Mortgage") ?: "Mortgage"
-        homePrice.value = prefs.getString("homePrice", "400000") ?: "400000"
-        downPayment.value = prefs.getString("downPayment", "80000") ?: "80000"
-        loanAmountInput.value = prefs.getString("loanAmountInput", "50000") ?: "50000"
-        interestRate.value = prefs.getString("interestRate", "6.5") ?: "6.5"
-        loanTermYears.value = prefs.getString("loanTermYears", "30") ?: "30"
-        extraPayment.value = prefs.getString("extraPayment", "100") ?: "100"
-        propertyTaxRate.value = prefs.getString("propertyTaxRate", "0") ?: "0"
+        homePrice.value = prefs.getString("homePrice", "0") ?: "0"
+        downPayment.value = prefs.getString("downPayment", "0") ?: "0"
+        loanAmountInput.value = prefs.getString("loanAmountInput", "0") ?: "0"
+        interestRate.value = prefs.getString("interestRate", "0") ?: "0"
+        loanTermYears.value = prefs.getString("loanTermYears", "0") ?: "0"
+        extraPayment.value = prefs.getString("extraPayment", "0") ?: "0"
+        propertyTaxRate.value = "0"
         homeInsurance.value = prefs.getString("homeInsurance", "0") ?: "0"
         pmiRate.value = prefs.getString("pmiRate", "0") ?: "0"
         
         themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
 
         isVariableRateEnabled.value = prefs.getBoolean("isVariableRateEnabled", false)
-        variablePeriodYears.value = prefs.getString("variablePeriodYears", "5") ?: "5"
-        subsequentAdjustRate.value = prefs.getString("subsequentAdjustRate", "1.5") ?: "1.5"
+        variablePeriodYears.value = prefs.getString("variablePeriodYears", "0") ?: "0"
+        subsequentAdjustRate.value = prefs.getString("subsequentAdjustRate", "0") ?: "0"
 
         isComparisonActive.value = prefs.getBoolean("isComparisonActive", false)
-        comparisonLoanAmount.value = prefs.getString("comparisonLoanAmount", "350000") ?: "350000"
-        comparisonDownPayment.value = prefs.getString("comparisonDownPayment", "70000") ?: "70000"
-        comparisonInterestRate.value = prefs.getString("comparisonInterestRate", "5.5") ?: "5.5"
-        comparisonLoanTermYears.value = prefs.getString("comparisonLoanTermYears", "15") ?: "15"
+        comparisonLoanAmount.value = prefs.getString("comparisonLoanAmount", "0") ?: "0"
+        comparisonDownPayment.value = prefs.getString("comparisonDownPayment", "0") ?: "0"
+        comparisonInterestRate.value = prefs.getString("comparisonInterestRate", "0") ?: "0"
+        comparisonLoanTermYears.value = prefs.getString("comparisonLoanTermYears", "0") ?: "0"
         comparisonExtraPayment.value = prefs.getString("comparisonExtraPayment", "0") ?: "0"
 
         // Load Debts
@@ -199,7 +199,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
             }
         }
 
-        debtPlannerBudget.value = prefs.getString("planner_budget", "1000") ?: "1000"
+        debtPlannerBudget.value = prefs.getString("planner_budget", "0") ?: "0"
         debtPayoffStrategy.value = prefs.getString("payoff_strategy", "Snowball") ?: "Snowball"
 
         isComparisonUnlocked.value = false

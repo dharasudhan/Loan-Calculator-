@@ -218,7 +218,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "Add Debt",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "Payoff Settings",
             TranslationKey.QUICK_BOOST to "Quick Boost: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "Taxes, Insurance, and Deductions",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "Insurance Costs (PMI & Home Insurance)",
             TranslationKey.ARM_TITLE to "Adjustable Rate Scenario (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "Simulate variable rate changes over time",
             TranslationKey.ARM_INFO to "💡 Fixed interest rate for the first %s years. Afterwards resetting by a subsequent %s%% variation. Monthly payments and graphs will update dynamically.",
@@ -356,7 +356,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "Añadir Deuda",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "Ajustes de Pago",
             TranslationKey.QUICK_BOOST to "Aumento rápido: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "Impuestos, Seguros y Deducciones",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "Costos de Seguro (PMI y Seguro de Hogar)",
             TranslationKey.ARM_TITLE to "Préstamo de Tasa Ajustable (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "Simule variaciones de la tasa de interés en el tiempo",
             TranslationKey.ARM_INFO to "💡 Tasa de interés fija durante los primeros %s años. Luego se reajusta con una variación del %s%%. Los pagos mensuales y gráficos se actualizarán dinámicamente.",
@@ -494,7 +494,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "Ajouter Dette",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "Paramètres de Paiement",
             TranslationKey.QUICK_BOOST to "Boost rapide: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "Taxes, Assurances et Déductions",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "Frais d'Assurance (PMI & Assurance Habitation)",
             TranslationKey.ARM_TITLE to "Prêt à Taux Variable (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "Simuler l'évolution du taux d'intérêt dans le temps",
             TranslationKey.ARM_INFO to "💡 Taux fixe les %s premières années, puis réévaluation avec une variation de %s%%. La mensualité et les graphiques s'adaptent automatiquement.",
@@ -630,7 +630,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "Schuld Hinzufügen",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "Zahlungseinstellungen",
             TranslationKey.QUICK_BOOST to "Schnelle Erhöhung: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "Steuern, Versicherungen und Abzüge",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "Versicherungskosten (PMI & Hausversicherung)",
             TranslationKey.ARM_TITLE to "Variables Zinsszenario (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "Zinsänderungen im Zeitverlauf simulieren",
             TranslationKey.ARM_INFO to "💡 Fester Zinssatz für die ersten %s Jahre. Danach Anpassung um %s%%. Monatliche Raten und Diagramme aktualisieren sich dynamisch.",
@@ -768,7 +768,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "कर्ज जोड़ें",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "भुगतान सेटिंग्स",
             TranslationKey.QUICK_BOOST to "त्वरित बढ़ावा: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "कर, बीमा और कटौती",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "बीमा लागत (पीएमआई और गृह बीमा)",
             TranslationKey.ARM_TITLE to "परिवर्तनीय ब्याज दर परिदृश्य (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "समय के साथ परिवर्तनीय ब्याज दर बदलावों का अनुकरण करें",
             TranslationKey.ARM_INFO to "💡 पहले %s वर्षों के लिए स्थिर ब्याज दर। इसके बाद %s%% बदलाव के साथ समायोजित होगी। मासिक किस्तें और ग्राफ स्वतः गतिशील रूप से अपडेट होंगे।",
@@ -906,7 +906,7 @@ object Translations {
             TranslationKey.ADD_DEBT_BTN to "கடனைச் சேர்",
             TranslationKey.PAYOFF_SETTINGS_TITLE to "பணம் செலுத்தும் அமைப்புகள்",
             TranslationKey.QUICK_BOOST to "விரைவு தொகை: %s",
-            TranslationKey.TAX_INS_DEDUCT_TITLE to "வரிகள், காப்பீடு மற்றும் பிடித்தங்கள்",
+            TranslationKey.TAX_INS_DEDUCT_TITLE to "காப்பீட்டுச் செலவுகள் (பிஎம்ஐ மற்றும் வீட்டு காப்பீடு)",
             TranslationKey.ARM_TITLE to "மாறுபடும் வட்டி விகிதக் கடன் (ARM) 📈",
             TranslationKey.ARM_SUBTITLE to "காலப்போக்கில் மாறும் வட்டி விகிதங்களை உருவகப்படுத்தவும்",
             TranslationKey.ARM_INFO to "💡 முதல் %s ஆண்டுகளுக்கு நிலையான வட்டி விகிதம். அதன்பிறகு %s%% வட்டி மாற்றம் நிகழும். தவணைகளும் வரைபடங்களும் தானாக இணையும்.",
@@ -1039,5 +1039,15 @@ fun String.parseToDoubleOrNull(): Double? {
 
 fun String.parseToFloatOrNull(): Float? {
     return this.parseToDoubleOrNull()?.toFloat()
+}
+
+fun coerceInputString(input: String, maxLimit: Double, isInteger: Boolean = false): String {
+    val doubleVal = input.parseToDoubleOrNull() ?: return input
+    if (doubleVal > maxLimit) {
+        return if (isInteger) maxLimit.toLong().toString() else {
+            if (maxLimit % 1.0 == 0.0) maxLimit.toLong().toString() else maxLimit.toString()
+        }
+    }
+    return input
 }
 
