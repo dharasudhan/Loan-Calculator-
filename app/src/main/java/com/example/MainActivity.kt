@@ -1,6 +1,8 @@
 package com.example
 
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CircularProgressIndicator
@@ -50,6 +52,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.draw.shadow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -125,6 +129,7 @@ class MainActivity : ComponentActivity() {
     if (::viewModelInstance.isInitialized) {
       viewModelInstance.lockComparisonFeature()
       viewModelInstance.lockDebtPlannerFeature()
+      viewModelInstance.lockRentVsBuyFeature()
     }
   }
 }
@@ -271,7 +276,8 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
         Translations.get(TranslationKey.CALCULATOR_TAB, lang),
         Translations.get(TranslationKey.SCHEDULE_TAB, lang),
         Translations.get(TranslationKey.COMPARISON_TAB, lang),
-        Translations.get(TranslationKey.DEBT_PLANNER_TAB, lang)
+        Translations.get(TranslationKey.DEBT_PLANNER_TAB, lang),
+        Translations.get(TranslationKey.RENT_VS_BUY_TAB, lang)
       )
 
       BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -383,6 +389,19 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
               )
             }
           }
+          4 -> {
+            val isRentVsBuyUnlocked by viewModel.isRentVsBuyUnlocked.collectAsState()
+            val isAdFreeFlow by viewModel.isAdFreeVersion.collectAsState()
+            if (isRentVsBuyUnlocked || isAdFreeFlow) {
+              RentVsBuyTab(viewModel, lang)
+            } else {
+              AdInteractiveScreen(
+                featureName = Translations.get(TranslationKey.RENT_VS_BUY_TAB, lang),
+                lang = lang,
+                onUnlocked = { viewModel.unlockRentVsBuyFeature() }
+              )
+            }
+          }
         }
       }
 
@@ -393,6 +412,22 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
       )
     }
   }
+}
+
+@Composable
+fun FinancialDisclaimerText(lang: LanguageCode) {
+  Text(
+    text = Translations.get(TranslationKey.FINANCIAL_DISCLAIMER, lang),
+    style = MaterialTheme.typography.bodySmall.copy(
+      color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+      fontSize = 11.sp,
+      lineHeight = 15.sp,
+      textAlign = TextAlign.Center
+    ),
+    modifier = Modifier
+      .fillMaxWidth()
+      .padding(horizontal = 4.dp, vertical = 12.dp)
+  )
 }
 
 @Composable
@@ -434,6 +469,8 @@ fun CalculatorTab(
             .padding(8.dp)
         ) {
           DashboardResultsCard(result, lang, curSymbol, loanTypeVal, viewModel)
+          Spacer(modifier = Modifier.height(8.dp))
+          FinancialDisclaimerText(lang)
         }
       }
     } else {
@@ -448,6 +485,7 @@ fun CalculatorTab(
         Spacer(modifier = Modifier.height(16.dp))
         DashboardResultsCard(result, lang, curSymbol, loanTypeVal, viewModel)
         Spacer(modifier = Modifier.height(16.dp))
+        FinancialDisclaimerText(lang)
       }
     }
   }
@@ -471,6 +509,7 @@ fun InputsCard(
   var insInput by remember { mutableStateOf(viewModel.homeInsurance.value) }
   var pmiInput by remember { mutableStateOf(viewModel.pmiRate.value) }
   var margTaxInput by remember { mutableStateOf(viewModel.marginalTaxRate.value) }
+  var activeHelpType by remember { mutableStateOf<HelpType?>(null) }
 
   val cur = lang.currencySymbol
 
@@ -575,6 +614,19 @@ fun InputsCard(
             .fillMaxWidth()
             .testTag("down_payment_input"),
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          trailingIcon = {
+            IconButton(
+              onClick = { activeHelpType = HelpType.LTV },
+              modifier = Modifier.testTag("help_ltv_button")
+            ) {
+              Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "What is LTV?",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+              )
+            }
+          },
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
@@ -623,6 +675,19 @@ fun InputsCard(
             .weight(1f)
             .testTag("interest_rate_input"),
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          trailingIcon = {
+            IconButton(
+              onClick = { activeHelpType = HelpType.APR },
+              modifier = Modifier.testTag("help_apr_button")
+            ) {
+              Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "What is APR?",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+              )
+            }
+          },
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
@@ -843,6 +908,19 @@ fun InputsCard(
                 singleLine = true,
                 modifier = Modifier.weight(1f),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                trailingIcon = {
+                  IconButton(
+                    onClick = { activeHelpType = HelpType.PMI },
+                    modifier = Modifier.testTag("help_pmi_button")
+                  ) {
+                    Icon(
+                      imageVector = Icons.Default.Info,
+                      contentDescription = "What is PMI?",
+                      tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                      modifier = Modifier.size(18.dp)
+                    )
+                  }
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                   focusedBorderColor = MaterialTheme.colorScheme.primary,
                   unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
@@ -866,12 +944,28 @@ fun InputsCard(
         verticalAlignment = Alignment.CenterVertically
       ) {
         Column(modifier = Modifier.weight(1f)) {
-          Text(
-            text = Translations.get(TranslationKey.ARM_TITLE, lang),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-          )
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+          ) {
+            Text(
+              text = Translations.get(TranslationKey.ARM_TITLE, lang),
+              style = MaterialTheme.typography.bodyMedium,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+            IconButton(
+              onClick = { activeHelpType = HelpType.ARM },
+              modifier = Modifier.size(24.dp).testTag("help_arm_button")
+            ) {
+              Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "What is ARM?",
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(16.dp)
+              )
+            }
+          }
           Text(
             text = Translations.get(TranslationKey.ARM_SUBTITLE, lang),
             style = MaterialTheme.typography.labelSmall,
@@ -930,6 +1024,14 @@ fun InputsCard(
           style = MaterialTheme.typography.labelSmall,
           color = MaterialTheme.colorScheme.primary,
           modifier = Modifier.padding(top = 8.dp)
+        )
+      }
+      
+      if (activeHelpType != null) {
+        HelpTooltipDialog(
+          helpType = activeHelpType!!,
+          lang = lang,
+          onDismiss = { activeHelpType = null }
         )
       }
     }
@@ -1069,12 +1171,12 @@ fun DashboardResultsCard(
           verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
           val labels = when(lang) {
-            LanguageCode.ES -> listOf("Monto Principal del Préstamo", "Total de Intereses Pagados", "Pagos Adicionales Totales", "Impuestos, Seguros y PMI")
-            LanguageCode.FR -> listOf("Montant Principal du Prêt", "Total des Intérêts Payés", "Paiements Supplémentaires Totaux", "Taxes, Assurances & PMI")
-            LanguageCode.DE -> listOf("Darlehenshauptbetrag", "Gezahlte Gesamtzinsen", "Zusätzliche Gesamtzahlungen", "Steuern, Versicherungen & PMI")
-            LanguageCode.HI -> listOf("ऋण मूलधन राशि", "कुल भुगतान किया गया ब्याज", "कुल अतिरिक्त भुगतान", "कर, बीमा और पीएमआई")
-            LanguageCode.TA -> listOf("அசல் கடன் தொகை", "வட்டி செலுத்திய தொகை", "கூடுதல் செலுத்திய தொகை", "வரிகள், காப்பீடு & பிஎம்ஐ")
-            else -> listOf("Principal Loan Amount", "Total Interest Paid", "Total Extra Paid", "Taxes, Insurance & PMI")
+            LanguageCode.ES -> listOf("Monto Principal del Préstamo", "Total de Intereses Pagados", "Pagos Adicionales Totales", "Seguros y PMI")
+            LanguageCode.FR -> listOf("Montant Principal du Prêt", "Total des Intérêts Payés", "Paiements Supplémentaires Totaux", "Assurances & PMI")
+            LanguageCode.DE -> listOf("Darlehenshauptbetrag", "Gezahlte Gesamtzinsen", "Zusätzliche Gesamtzahlungen", "Versicherungen & PMI")
+            LanguageCode.HI -> listOf("ऋण मूलधन राशि", "कुल भुगतान किया गया ब्याज", "कुल अतिरिक्त भुगतान", "बीमा और पीएमआई")
+            LanguageCode.TA -> listOf("அசல் கடன் தொகை", "வட்டி செலுத்திய தொகை", "கூடுதல் செலுத்திய தொகை", "காப்பீடு & பிஎம்ஐ")
+            else -> listOf("Principal Loan Amount", "Total Interest Paid", "Total Extra Paid", "Insurance & PMI")
           }
 
           val pAmt = result.principalLoanAmount
@@ -2969,6 +3071,10 @@ fun SimulatedPremiumUpgradeDialog(
               Text("✅", fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
               Text(Translations.get(TranslationKey.PREM_BENEFIT_3, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Text("✅", fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+              Text(Translations.get(TranslationKey.PREM_BENEFIT_4, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            }
           }
 
           Spacer(modifier = Modifier.height(4.dp))
@@ -3785,6 +3891,7 @@ fun ComparisonTab(
 
 @Composable
 fun ReportBugDialog(lang: LanguageCode, onDismiss: () -> Unit) {
+  val context = LocalContext.current
   var summary by remember { mutableStateOf("") }
   var description by remember { mutableStateOf("") }
   var severity by remember { mutableStateOf("Medium") }
@@ -4007,7 +4114,43 @@ fun ReportBugDialog(lang: LanguageCode, onDismiss: () -> Unit) {
           
           if (isSubmitting) {
             LaunchedEffect(Unit) {
-              delay(1500)
+              val refNum = "LM-" + (100000..999999).random().toString()
+              val recipient = "loopzerotech@gmail.com"
+              val subject = "[Bug Report] Loan Math - Ref: $refNum"
+              val body = """
+                  === LOAN MATH DEBT CALCULATOR ===
+                  Professional Bug Report Summary
+                  
+                  Reference Number: $refNum
+                  Severity Level: $severity
+                  Issue Title: $summary
+                  Contact Email: ${if (email.trim().isNotEmpty()) email.trim() else "Anonymous User"}
+                  
+                  ------------------------------------------
+                  DETAILED DESCRIPTION:
+                  $description
+                  ------------------------------------------
+                  
+                  METADATA & ENVIRONMENT:
+                  Device OS Version: Android API ${android.os.Build.VERSION.SDK_INT}
+                  Device Hardware Model: ${android.os.Build.MODEL} (Product: ${android.os.Build.PRODUCT})
+                  Application build version: 1.0 (PRO Premium)
+              """.trimIndent()
+
+              val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:")
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
+                putExtra(Intent.EXTRA_SUBJECT, subject)
+                putExtra(Intent.EXTRA_TEXT, body)
+              }
+              
+              try {
+                context.startActivity(Intent.createChooser(intent, "Send Email..."))
+              } catch (e: Exception) {
+                // Ignore fallback if mail container is missing in emulator
+              }
+              
+              delay(1000)
               isSubmitting = false
               isSuccess = true
             }
@@ -4016,5 +4159,74 @@ fun ReportBugDialog(lang: LanguageCode, onDismiss: () -> Unit) {
       }
     }
   }
+}
+
+enum class HelpType {
+    PMI,
+    ARM,
+    LTV,
+    APR
+}
+
+@Composable
+fun HelpTooltipDialog(
+    helpType: HelpType,
+    lang: LanguageCode,
+    onDismiss: () -> Unit
+) {
+    val title = when (helpType) {
+        HelpType.PMI -> Translations.get(TranslationKey.HELP_PMI_TITLE, lang)
+        HelpType.ARM -> Translations.get(TranslationKey.HELP_ARM_TITLE, lang)
+        HelpType.LTV -> Translations.get(TranslationKey.HELP_LTV_TITLE, lang)
+        HelpType.APR -> Translations.get(TranslationKey.HELP_APR_TITLE, lang)
+    }
+    val description = when (helpType) {
+        HelpType.PMI -> Translations.get(TranslationKey.HELP_PMI_DESC, lang)
+        HelpType.ARM -> Translations.get(TranslationKey.HELP_ARM_DESC, lang)
+        HelpType.LTV -> Translations.get(TranslationKey.HELP_LTV_DESC, lang)
+        HelpType.APR -> Translations.get(TranslationKey.HELP_APR_DESC, lang)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        },
+        text = {
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Start,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("help_tooltip_confirm_button")
+            ) {
+                Text(
+                    text = Translations.get(TranslationKey.DONE, lang),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.testTag("help_tooltip_dialog_${helpType.name.lowercase()}")
+    )
 }
 

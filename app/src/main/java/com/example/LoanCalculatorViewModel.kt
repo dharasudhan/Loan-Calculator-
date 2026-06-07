@@ -135,6 +135,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     // Ad-based Unlock States
     val isComparisonUnlocked = MutableStateFlow(false)
     val isDebtPlannerUnlocked = MutableStateFlow(false)
+    val isRentVsBuyUnlocked = MutableStateFlow(false)
     val isAdFreeVersion = MutableStateFlow(false)
 
     init {
@@ -204,6 +205,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
         isComparisonUnlocked.value = false
         isDebtPlannerUnlocked.value = false
+        isRentVsBuyUnlocked.value = false
         isAdFreeVersion.value = prefs.getBoolean("isAdFreeVersion", false)
     }
 
@@ -235,6 +237,16 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     fun lockDebtPlannerFeature() {
         isDebtPlannerUnlocked.value = false
         prefs.edit().putBoolean("isDebtPlannerUnlocked", false).apply()
+    }
+
+    fun unlockRentVsBuyFeature() {
+        isRentVsBuyUnlocked.value = true
+        prefs.edit().putBoolean("isRentVsBuyUnlocked", true).apply()
+    }
+
+    fun lockRentVsBuyFeature() {
+        isRentVsBuyUnlocked.value = false
+        prefs.edit().putBoolean("isRentVsBuyUnlocked", false).apply()
     }
 
     private fun saveInputsToPrefs() {
@@ -570,7 +582,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         var totalInterestToDate = 0.0
         var monthCounter = 0
 
-        while (balance > 0.0 && monthCounter < 600) { // Limit to 50 years max (600 months)
+        while (balance > 0.01 && monthCounter < 600) { // Limit to 50 years max (600 months)
             monthCounter++
             val currentYear = ((monthCounter - 1) / 12) + 1
             
@@ -590,7 +602,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
             val interestThisMonth = balance * activeMonthlyRate
             var principalThisMonth = activeMonthlyPi - interestThisMonth
 
-            if (principalThisMonth > balance) {
+            if (principalThisMonth + 1.0 >= balance || monthCounter >= totalMonths) {
                 principalThisMonth = balance
             } else if (principalThisMonth < 0.0) {
                 principalThisMonth = 0.0
@@ -759,13 +771,13 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         var totalInterestToDate = 0.0
         var monthCounter = 0
 
-        while (balance > 0.0 && monthCounter < 600) {
+        while (balance > 0.01 && monthCounter < 600) {
             monthCounter++
             val currentYear = ((monthCounter - 1) / 12) + 1
             val interestThisMonth = balance * monthlyRate
             var principalThisMonth = monthlyPi - interestThisMonth
 
-            if (principalThisMonth > balance) {
+            if (principalThisMonth + 1.0 >= balance || monthCounter >= totalMonths) {
                 principalThisMonth = balance
             } else if (principalThisMonth < 0.0) {
                 principalThisMonth = 0.0
