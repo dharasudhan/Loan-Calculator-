@@ -44,7 +44,8 @@ fun RentVsBuyTab(
     viewModel: LoanCalculatorViewModel,
     lang: LanguageCode
 ) {
-    val cur = lang.currencySymbol
+    val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+    val cur = customCurrency ?: lang.currencySymbol
     val context = LocalContext.current
 
     // Input States

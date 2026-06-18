@@ -157,7 +157,11 @@ enum class TranslationKey {
     HELP_APR_TITLE,
     HELP_APR_DESC,
     RENT_VS_BUY_TAB,
-    FINANCIAL_DISCLAIMER
+    FINANCIAL_DISCLAIMER,
+    SETTINGS_TITLE,
+    SETTINGS_LANG,
+    SETTINGS_CURR,
+    PRIVACY_POLICY_LABEL
 }
 
 object Translations {
@@ -310,10 +314,14 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "APR (Annual Percentage Rate)",
             TranslationKey.HELP_APR_DESC to "Annual Percentage Rate represents the yearly total cost of your borrowing. It includes the core interest rate plus any extra finance charges, mortgage broker fees, or prepaid points, expressed as an annual rate.",
             TranslationKey.RENT_VS_BUY_TAB to "Rent Vs Buy",
-            TranslationKey.FINANCIAL_DISCLAIMER to "Disclaimer: This tool is for informational and educational purposes only. It is not financial or professional advice. Please consult a qualified professional before making financial decisions."
+            TranslationKey.FINANCIAL_DISCLAIMER to "Disclaimer: This tool is for informational and educational purposes only. It is not financial or professional advice. Please consult a qualified professional before making financial decisions.",
+            TranslationKey.SETTINGS_TITLE to "Settings",
+            TranslationKey.SETTINGS_LANG to "Language",
+            TranslationKey.SETTINGS_CURR to "Currency",
+            TranslationKey.PRIVACY_POLICY_LABEL to "Privacy Policy"
         ),
         LanguageCode.ES to mapOf(
-            TranslationKey.APP_TITLE to "Loan Math (Matemáticas de Préstamo)",
+            TranslationKey.APP_TITLE to "Loan Math",
             TranslationKey.CALCULATOR_TAB to "Calculadora",
             TranslationKey.SCHEDULE_TAB to "Calendario",
             TranslationKey.COMPARISON_TAB to "Comparación",
@@ -459,10 +467,14 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "APR (Tasa de Porcentaje Anual)",
             TranslationKey.HELP_APR_DESC to "La tasa de porcentaje anual representa el costo total anual de su préstamo. Incluye la tasa de interés base más cualquier cargo financiero adicional, comisiones de intermediarios o puntos prepagos, expresados como una tasa anual.",
             TranslationKey.RENT_VS_BUY_TAB to "Alquilar vs Comprar",
-            TranslationKey.FINANCIAL_DISCLAIMER to "Descargo de responsabilidad: Esta herramienta es solo para fines informativos y educativos. No constituye asesoramiento financiero o profesional. Consulte con un profesional calificado antes de tomar decisiones financieras."
+            TranslationKey.FINANCIAL_DISCLAIMER to "Descargo de responsabilidad: Esta herramienta es solo para fines informativos y educativos. No constituye asesoramiento financiero o profesional. Consulte con un profesional calificado antes de tomar decisiones financieras.",
+            TranslationKey.SETTINGS_TITLE to "Ajustes",
+            TranslationKey.SETTINGS_LANG to "Idioma",
+            TranslationKey.SETTINGS_CURR to "Moneda",
+            TranslationKey.PRIVACY_POLICY_LABEL to "Política de Privacidad"
         ),
         LanguageCode.FR to mapOf(
-            TranslationKey.APP_TITLE to "Loan Math (Maths d'Emprunt)",
+            TranslationKey.APP_TITLE to "Loan Math",
             TranslationKey.CALCULATOR_TAB to "Calculateur",
             TranslationKey.SCHEDULE_TAB to "Amortissement",
             TranslationKey.COMPARISON_TAB to "Comparatif",
@@ -606,10 +618,14 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "APR (Taux Annuel Effectif Global)",
             TranslationKey.HELP_APR_DESC to "Le taux annuel effectif global représente le coût total annuel de votre emprunt. Il inclut le taux d'intérêt nominal plus les frais administratifs, commissions et autres frais connexes, exprimés sous forme de taux annuel.",
             TranslationKey.RENT_VS_BUY_TAB to "Louer vs Acheter",
-            TranslationKey.FINANCIAL_DISCLAIMER to "Clause de non-responsabilité : Cet outil est fourni à titre indicatif et éducatif uniquement. Il ne constitue pas un conseil financier ou professionnel. Veuillez consulter un professionnel qualifié avant de prendre des décisions financières."
+            TranslationKey.FINANCIAL_DISCLAIMER to "Clause de non-responsabilité : Cet outil est fourni à titre indicatif et éducatif uniquement. Il ne constitue pas un conseil financier ou professionnel. Veuillez consulter un professionnel qualifié avant de prendre des décisions financières.",
+            TranslationKey.SETTINGS_TITLE to "Paramètres",
+            TranslationKey.SETTINGS_LANG to "Langue",
+            TranslationKey.SETTINGS_CURR to "Devise",
+            TranslationKey.PRIVACY_POLICY_LABEL to "Politique de Confidentialité"
         ),
         LanguageCode.DE to mapOf(
-            TranslationKey.APP_TITLE to "Loan Math (Kreditrechner)",
+            TranslationKey.APP_TITLE to "Loan Math",
             TranslationKey.CALCULATOR_TAB to "Rechner",
             TranslationKey.SCHEDULE_TAB to "Tilgungsplan",
             TranslationKey.COMPARISON_TAB to "Vergleich",
@@ -755,10 +771,14 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "APR (Effektiver Jahreszins)",
             TranslationKey.HELP_APR_DESC to "Der effektive Jahreszins stellt die jährlichen Gesamtkosten Ihrer Kreditaufnahme dar. Er umfasst den Sollzinssatz plus anfallende Zusatzgebühren, Vermittlungskosten oder Bearbeitungsgebühren als Jahressatz.",
             TranslationKey.RENT_VS_BUY_TAB to "Mieten vs Kaufen",
-            TranslationKey.FINANCIAL_DISCLAIMER to "Haftungsausschluss: Dieses Tool dient nur zu Informations- und Bildungszwecken. Es handelt sich nicht um eine Finanz- oder professionelle Beratung. Bitte konsultieren Sie einen qualifizierten Fachmann, bevor Sie finanzielle Entscheidungen treffen."
+            TranslationKey.FINANCIAL_DISCLAIMER to "Haftungsausschluss: Dieses Tool dient nur zu Informations- und Bildungszwecken. Es handelt sich nicht um eine Finanz- oder professionelle Beratung. Bitte konsultieren Sie einen qualifizierten Fachmann, bevor Sie finanzielle Entscheidungen treffen.",
+            TranslationKey.SETTINGS_TITLE to "Einstellungen",
+            TranslationKey.SETTINGS_LANG to "Sprache",
+            TranslationKey.SETTINGS_CURR to "Währung",
+            TranslationKey.PRIVACY_POLICY_LABEL to "Datenschutzerklärung"
         ),
         LanguageCode.HI to mapOf(
-            TranslationKey.APP_TITLE to "ऋण गणित (Loan Math)",
+            TranslationKey.APP_TITLE to "Loan Math",
             TranslationKey.CALCULATOR_TAB to "कैलकुलेटर",
             TranslationKey.SCHEDULE_TAB to "किश्त अनुसूची",
             TranslationKey.COMPARISON_TAB to "तुलना",
@@ -904,10 +924,14 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "एपीआर (वार्षिक प्रतिशत दर / Annual Percentage Rate)",
             TranslationKey.HELP_APR_DESC to "एपीआर आपके कर्ज लेने की कुल वार्षिक लागत को दर्शाता है। इसमें ऋण की मूल ब्याज दर के साथ-साथ ब्रोकर शुल्क या अन्य अतिरिक्त शुल्क भी शामिल होते हैं, जिन्हें वार्षिक दर के रूप में प्रस्तुत किया जाता है।",
             TranslationKey.RENT_VS_BUY_TAB to "किराया बनाम खरीद",
-            TranslationKey.FINANCIAL_DISCLAIMER to "अस्वीकरण: यह उपकरण केवल सूचनात्मक और शैक्षिक उद्देश्यों के लिए है। यह वित्तीय या पेशेवर सलाह नहीं है। कृपया वित्तीय निर्णय लेने से पहले किसी योग्य पेशेवर से परामर्श लें।"
+            TranslationKey.FINANCIAL_DISCLAIMER to "अस्वीकरण: यह उपकरण केवल सूचनात्मक और शैक्षिक उद्देश्यों के लिए है। यह वित्तीय या पेशेवर सलाह नहीं है। कृपया वित्तीय निर्णय लेने से पहले किसी योग्य पेशेवर से परामर्श लें।",
+            TranslationKey.SETTINGS_TITLE to "सेटिंग्स",
+            TranslationKey.SETTINGS_LANG to "भाषा",
+            TranslationKey.SETTINGS_CURR to "मुद्रा",
+            TranslationKey.PRIVACY_POLICY_LABEL to "गोपनीयता नीति"
         ),
         LanguageCode.TA to mapOf(
-            TranslationKey.APP_TITLE to "கடன் கணிதம் (Loan Math)",
+            TranslationKey.APP_TITLE to "Loan Math",
             TranslationKey.CALCULATOR_TAB to "கால்குலேட்டர்",
             TranslationKey.SCHEDULE_TAB to "அட்டவணை",
             TranslationKey.COMPARISON_TAB to "ஒப்பீடு",
@@ -1053,7 +1077,11 @@ object Translations {
             TranslationKey.HELP_APR_TITLE to "APR (ஆண்டு சதவீத வட்டி விகிதம்)",
             TranslationKey.HELP_APR_DESC to "ஆண்டு சதவீத வட்டி விகிதம் என்பது கடன் வாங்குவதற்கான மொத்த ஆண்டுச் செலவைக் குறிக்கிறது. இதில் வட்டி விகிதத்துடன் இதர கட்டணங்கள் மற்றும் தரகுக் கட்டணங்களும் அடங்கும்.",
             TranslationKey.RENT_VS_BUY_TAB to "வாடகை vs கொள்முதல்",
-            TranslationKey.FINANCIAL_DISCLAIMER to "பொறுப்புத் துறப்பு: இந்தக் கருவி தகவல் மற்றும் கல்வி நோக்கங்களுக்காக மட்டுமே. இது நிதி அல்லது தொழில்முறை ஆலோசனை அல்ல. ஏதேனும் நிதி முடிவுகளை எடுப்பதற்கு முன் தகுதிவாய்ந்த நிபுணரை அணுகவும்."
+            TranslationKey.FINANCIAL_DISCLAIMER to "பொறுப்புத் துறப்பு: இந்தக் கருவி தகவல் மற்றும் கல்வி நோக்கங்களுக்காக மட்டுமே. இது நிதி அல்லது தொழில்முறை ஆலோசனை அல்ல. ஏதேனும் நிதி முடிவுகளை எடுப்பதற்கு முன் தகுதிவாய்ந்த நிபுணரை அணுகவும்.",
+            TranslationKey.SETTINGS_TITLE to "அமைப்புகள்",
+            TranslationKey.SETTINGS_LANG to "மொழி",
+            TranslationKey.SETTINGS_CURR to "நாணயம்",
+            TranslationKey.PRIVACY_POLICY_LABEL to "தனியுரிமைக் கொள்கை"
         )
     )
 

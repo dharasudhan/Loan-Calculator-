@@ -75,6 +75,16 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     fun setLanguage(lang: LanguageCode) {
         _currentLanguage.value = lang
+        prefs.edit().putString("current_language", lang.name).apply()
+    }
+
+    // Custom Currency
+    private val _customCurrencySymbol = MutableStateFlow<String?>(null)
+    val customCurrencySymbol: StateFlow<String?> = _customCurrencySymbol.asStateFlow()
+
+    fun setCustomCurrencySymbol(symbol: String?) {
+        _customCurrencySymbol.value = symbol
+        prefs.edit().putString("custom_currency_symbol", symbol).apply()
     }
 
     // Theme Mode ("system", "light", "dark")
@@ -158,6 +168,14 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         pmiRate.value = prefs.getString("pmiRate", "0") ?: "0"
         
         themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
+        
+        val savedLangStr = prefs.getString("current_language", "EN") ?: "EN"
+        _currentLanguage.value = try {
+            LanguageCode.valueOf(savedLangStr)
+        } catch (e: Exception) {
+            LanguageCode.EN
+        }
+        _customCurrencySymbol.value = prefs.getString("custom_currency_symbol", null)
 
         isVariableRateEnabled.value = prefs.getBoolean("isVariableRateEnabled", false)
         variablePeriodYears.value = prefs.getString("variablePeriodYears", "0") ?: "0"

@@ -17,7 +17,9 @@ object PdfReportExporter {
         context: Context,
         result: CalculationResult,
         lang: LanguageCode,
-        loanType: String
+        loanType: String,
+        byMonthly: Boolean = false,
+        currencySymbol: String? = null
     ): Boolean {
         if (!result.isValid) return false
 
@@ -86,7 +88,7 @@ object PdfReportExporter {
                 strokeWidth = 0.8f
             }
 
-            val sym = lang.currencySymbol
+            val sym = currencySymbol ?: lang.currencySymbol
 
             // PAGE 1: Overview & Performance Breakdown
             var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
@@ -163,8 +165,14 @@ object PdfReportExporter {
                 formatCurrency(result.totalPaidAmount, sym), bodyPaint, valBigPaint)
 
             // Section: Table Header for amortization schedule
+            val schedulePeriodTitle = if (byMonthly) {
+                Translations.get(TranslationKey.SCHEDULE_TAB, lang) + " (" + Translations.get(TranslationKey.MONTH, lang) + ")"
+            } else {
+                Translations.get(TranslationKey.SCHEDULE_TAB, lang) + " (" + Translations.get(TranslationKey.YEAR_LABEL, lang) + "ly)"
+            }
+
             canvas.drawText(
-                Translations.get(TranslationKey.SCHEDULE_TAB, lang) + " (" + Translations.get(TranslationKey.YEAR_LABEL, lang) + "ly)",
+                schedulePeriodTitle,
                 40f,
                 265f,
                 h2Paint
@@ -176,12 +184,12 @@ object PdfReportExporter {
             
             val colsX = floatArrayOf(45f, 100f, 180f, 270f, 360f, 455f)
             val headerKeys = arrayOf(
-                Translations.get(TranslationKey.YEAR, lang),
+                if (byMonthly) Translations.get(TranslationKey.MONTH, lang) else Translations.get(TranslationKey.YEAR, lang),
                 "Total Paid",
                 Translations.get(TranslationKey.PRINCIPAL_AND_INTEREST, lang).take(12) + "..",
                 Translations.get(TranslationKey.TOTAL_INTEREST, lang).take(12) + "..",
                 "Extra Paid",
-                "Ending Balance"
+                if (byMonthly) "Balance" else "Ending Balance"
             )
 
             for (i in headerKeys.indices) {
@@ -192,8 +200,41 @@ object PdfReportExporter {
             var itemCounter = 0
             var pageNumber = 1
 
-            // Write Yearly Items
-            for (item in result.yearlySchedule) {
+            data class ScheduleRow(
+                val indexLabel: String,
+                val paymentAmount: Double,
+                val principalPaid: Double,
+                val interestPaid: Double,
+                val extraPayment: Double,
+                val balance: Double
+            )
+
+            val rowsToPrint = if (byMonthly) {
+                result.schedule.map { item ->
+                    ScheduleRow(
+                        indexLabel = item.monthNumber.toString(),
+                        paymentAmount = item.paymentAmount,
+                        principalPaid = item.principalPaid,
+                        interestPaid = item.interestPaid,
+                        extraPayment = item.extraPayment,
+                        balance = item.remainingBalance
+                    )
+                }
+            } else {
+                result.yearlySchedule.map { item ->
+                    ScheduleRow(
+                        indexLabel = item.yearNumber.toString(),
+                        paymentAmount = item.paymentAmount,
+                        principalPaid = item.principalPaid,
+                        interestPaid = item.interestPaid,
+                        extraPayment = item.extraPayment,
+                        balance = item.endingBalance
+                    )
+                }
+            }
+
+            // Write Schedule Items
+            for (item in rowsToPrint) {
                 // If we run out of vertical space on current page, finish it and start a new one!
                 if (currY + 20f > pageHeight - 60f) {
                     // Draw Page footer on old page
@@ -218,12 +259,12 @@ object PdfReportExporter {
                     canvas.drawRect(40f, currY, 555f, currY + 18f, lightBgPaint)
                 }
                 
-                canvas.drawText(item.yearNumber.toString(), colsX[0], currY + 12f, bodyBoldPaint)
+                canvas.drawText(item.indexLabel, colsX[0], currY + 12f, bodyBoldPaint)
                 canvas.drawText(formatCurrency(item.paymentAmount, sym), colsX[1], currY + 12f, bodyPaint)
                 canvas.drawText(formatCurrency(item.principalPaid, sym), colsX[2], currY + 12f, bodyPaint)
                 canvas.drawText(formatCurrency(item.interestPaid, sym), colsX[3], currY + 12f, bodyPaint)
                 canvas.drawText(formatCurrency(item.extraPayment, sym), colsX[4], currY + 12f, bodyPaint)
-                canvas.drawText(formatCurrency(item.endingBalance, sym), colsX[5], currY + 12f, bodyBoldPaint)
+                canvas.drawText(formatCurrency(item.balance, sym), colsX[5], currY + 12f, bodyBoldPaint)
 
                 // Dividers
                 canvas.drawLine(40f, currY + 18f, 555f, currY + 18f, linePaint)

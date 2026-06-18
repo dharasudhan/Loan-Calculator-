@@ -51,7 +51,9 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Button
@@ -147,6 +149,16 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
   var langMenuExpanded by remember { mutableStateOf(false) }
   var showPremiumUpgradeDialog by remember { mutableStateOf(false) }
   var showReportBugDialog by remember { mutableStateOf(false) }
+  var showSettingsScreen by remember { mutableStateOf(false) }
+
+  if (showSettingsScreen) {
+    SettingsScreen(
+      viewModel = viewModel,
+      lang = lang,
+      onDismiss = { showSettingsScreen = false },
+      onShowBugReport = { showReportBugDialog = true }
+    )
+  }
 
   if (showPremiumUpgradeDialog) {
     SimulatedPremiumUpgradeDialog(
@@ -200,65 +212,23 @@ fun MainScreen(viewModel: LoanCalculatorViewModel = viewModel()) {
             )
           }
 
-          // Report Bug button
+          // Settings (Gear) button
           IconButton(
-            onClick = { showReportBugDialog = true },
+            onClick = { showSettingsScreen = true },
             modifier = Modifier
-              .padding(end = 4.dp)
+              .padding(end = 8.dp)
               .background(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                 shape = CircleShape
               )
-              .testTag("report_bug_top_btn")
+              .testTag("settings_top_btn")
           ) {
-            Text(
-              text = "🪲",
-              fontSize = 18.sp
+            Icon(
+              imageVector = Icons.Default.Settings,
+              contentDescription = "Settings",
+              tint = MaterialTheme.colorScheme.onBackground,
+              modifier = Modifier.size(20.dp)
             )
-          }
-
-          // Language selector button
-          Box(modifier = Modifier.padding(end = 8.dp)) {
-            Row(
-              modifier = Modifier
-                .clickable { langMenuExpanded = true }
-                .background(
-                  MaterialTheme.colorScheme.surface,
-                  shape = RoundedCornerShape(24.dp)
-                )
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .testTag("language_selector_btn"),
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Text(
-                text = "${lang.flagEmoji} ${lang.displayName}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-              )
-            }
-            
-            DropdownMenu(
-              expanded = langMenuExpanded,
-              onDismissRequest = { langMenuExpanded = false },
-              modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            ) {
-              LanguageCode.values().forEach { option ->
-                DropdownMenuItem(
-                  text = {
-                    Text(
-                      text = "${option.flagEmoji} ${option.displayName}",
-                      style = MaterialTheme.typography.bodyMedium,
-                      color = MaterialTheme.colorScheme.onSurface
-                    )
-                  },
-                  onClick = {
-                    viewModel.setLanguage(option)
-                    langMenuExpanded = false
-                  }
-                )
-              }
-            }
           }
         }
       )
@@ -437,7 +407,8 @@ fun CalculatorTab(
   lang: LanguageCode,
   loanTypeVal: String
 ) {
-  val curSymbol = lang.currencySymbol
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val curSymbol = customCurrency ?: lang.currencySymbol
   val scrollState = rememberScrollState()
 
   BoxWithConstraints {
@@ -511,7 +482,8 @@ fun InputsCard(
   var margTaxInput by remember { mutableStateOf(viewModel.marginalTaxRate.value) }
   var activeHelpType by remember { mutableStateOf<HelpType?>(null) }
 
-  val cur = lang.currencySymbol
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val cur = customCurrency ?: lang.currencySymbol
 
   Card(
     modifier = Modifier
@@ -1481,6 +1453,8 @@ fun AmortizationTab(
   loanTypeVal: String
 ) {
   val context = LocalContext.current
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val curSymbol = customCurrency ?: lang.currencySymbol
   var viewByMonthly by remember { mutableStateOf(false) }
 
   if (!result.isValid) {
@@ -1531,7 +1505,14 @@ fun AmortizationTab(
       // PDF Share Button
       Button(
         onClick = {
-          val success = PdfReportExporter.generateAndSharePdf(context, result, lang, loanTypeVal)
+          val success = PdfReportExporter.generateAndSharePdf(
+            context = context,
+            result = result,
+            lang = lang,
+            loanType = loanTypeVal,
+            byMonthly = viewByMonthly,
+            currencySymbol = customCurrency
+          )
           if (success) {
             Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
           } else {
@@ -1581,13 +1562,13 @@ fun AmortizationTab(
         if (viewByMonthly) {
           LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(result.schedule) { item ->
-              MonthlyAmortizationRow(item, lang.currencySymbol)
+              MonthlyAmortizationRow(item, curSymbol)
             }
           }
         } else {
           LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(result.yearlySchedule) { item ->
-              YearlyAmortizationRow(item, lang.currencySymbol)
+              YearlyAmortizationRow(item, curSymbol)
             }
           }
         }
@@ -1642,7 +1623,8 @@ fun DebtPlannerTab(
   lang: LanguageCode
 ) {
   val context = LocalContext.current
-  val cur = lang.currencySymbol
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val cur = customCurrency ?: lang.currencySymbol
   val debts by viewModel.debtsList.collectAsState()
   val budgetStr by viewModel.debtPlannerBudget.collectAsState()
   val strategy by viewModel.debtPayoffStrategy.collectAsState()
@@ -3427,7 +3409,8 @@ fun ComparisonTab(
   result: CalculationResult,
   lang: LanguageCode
 ) {
-  val cur = lang.currencySymbol
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val cur = customCurrency ?: lang.currencySymbol
   val isCompEnabled = true
   
   val compAmountVal by viewModel.comparisonLoanAmount.collectAsState()
@@ -4228,5 +4211,395 @@ fun HelpTooltipDialog(
         containerColor = MaterialTheme.colorScheme.surface,
         modifier = Modifier.testTag("help_tooltip_dialog_${helpType.name.lowercase()}")
     )
+}
+
+@Composable
+fun SettingsScreen(
+  viewModel: LoanCalculatorViewModel,
+  lang: LanguageCode,
+  onDismiss: () -> Unit,
+  onShowBugReport: () -> Unit
+) {
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val isAdFree by viewModel.isAdFreeVersion.collectAsState()
+  var showPrivacyDialog by remember { mutableStateOf(false) }
+
+  if (showPrivacyDialog) {
+    PrivacyPolicyDialog(lang = lang, onDismiss = { showPrivacyDialog = false })
+  }
+
+  Dialog(
+    onDismissRequest = onDismiss
+  ) {
+    Card(
+      modifier = Modifier
+        .fillMaxWidth()
+        .heightIn(max = 680.dp)
+        .padding(12.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+      shape = RoundedCornerShape(24.dp),
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+    ) {
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(16.dp)
+      ) {
+        // Header
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+              text = "⚙️",
+              fontSize = 22.sp,
+              modifier = Modifier.padding(end = 8.dp)
+            )
+            Text(
+              text = Translations.get(TranslationKey.SETTINGS_TITLE, lang),
+              style = MaterialTheme.typography.titleLarge,
+              fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurface
+            )
+          }
+          IconButton(
+            onClick = onDismiss,
+            modifier = Modifier.testTag("settings_close_btn")
+          ) {
+            Icon(
+              imageVector = Icons.Default.Close,
+              contentDescription = "Close",
+              tint = MaterialTheme.colorScheme.onSurface
+            )
+          }
+        }
+
+        HorizontalDivider(
+          modifier = Modifier.padding(vertical = 12.dp),
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+        )
+
+        LazyColumn(
+          modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f),
+          verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+          // 1. Language Section
+          item {
+            Column {
+              Text(
+                text = Translations.get(TranslationKey.SETTINGS_LANG, lang),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+              )
+              
+              Card(
+                colors = CardDefaults.cardColors(
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+              ) {
+                Column {
+                  val languages = LanguageCode.values()
+                  languages.forEachIndexed { index, option ->
+                    Row(
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.setLanguage(option) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                      Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                          text = option.flagEmoji,
+                          fontSize = 18.sp,
+                          modifier = Modifier.padding(end = 12.dp)
+                        )
+                        Text(
+                          text = option.displayName,
+                          style = MaterialTheme.typography.bodyLarge,
+                          color = MaterialTheme.colorScheme.onSurface,
+                          fontWeight = if (lang == option) FontWeight.Bold else FontWeight.Normal
+                        )
+                      }
+                      if (lang == option) {
+                        Text(
+                          text = "✓",
+                          fontSize = 18.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                        )
+                      }
+                    }
+                    if (index < languages.size - 1) {
+                      HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // 2. Currency Section
+          item {
+            Column {
+              Text(
+                text = Translations.get(TranslationKey.SETTINGS_CURR, lang),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+              )
+              
+              Card(
+                colors = CardDefaults.cardColors(
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.padding(bottom = 4.dp)
+              ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                  Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                  ) {
+                    val currencies = listOf("$", "€", "£", "₹", "¥", "₩", "₪")
+                    currencies.forEach { symbol ->
+                      val isSelected = (customCurrency == symbol) || (customCurrency == null && lang.currencySymbol == symbol)
+                      Box(
+                        modifier = Modifier
+                          .size(38.dp)
+                          .background(
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                            shape = CircleShape
+                          )
+                          .clip(CircleShape)
+                          .clickable { viewModel.setCustomCurrencySymbol(symbol) },
+                        contentAlignment = Alignment.Center
+                      ) {
+                        Text(
+                          text = symbol,
+                          style = MaterialTheme.typography.bodyLarge,
+                          fontWeight = FontWeight.Bold,
+                          color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                        )
+                      }
+                    }
+                  }
+                  
+                  Spacer(modifier = Modifier.height(12.dp))
+                  
+                  // Reset to default button
+                  Button(
+                    onClick = { viewModel.setCustomCurrencySymbol(null) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                      containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                      contentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                  ) {
+                    val defaultSymbol = lang.currencySymbol
+                    Text(
+                      text = "Reset to Default ($defaultSymbol)",
+                      style = MaterialTheme.typography.bodyMedium,
+                      fontWeight = FontWeight.SemiBold
+                    )
+                  }
+                }
+              }
+            }
+          }
+
+          // 3. Privacy Policy & App Info Section
+          item {
+            Column {
+              Text(
+                text = "App Information",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+              )
+
+              Card(
+                colors = CardDefaults.cardColors(
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+              ) {
+                Column {
+                  // View Privacy Policy option
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .clickable { showPrivacyDialog = true }
+                      .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Text(
+                      text = "📄",
+                      fontSize = 18.sp,
+                      modifier = Modifier.padding(end = 12.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = Translations.get(TranslationKey.PRIVACY_POLICY_LABEL, lang),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                      )
+                      Text(
+                        text = "Read our official offline compliance document",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                      )
+                    }
+                    Text(
+                      text = "➔",
+                      color = MaterialTheme.colorScheme.primary,
+                      fontWeight = FontWeight.Bold
+                    )
+                  }
+                  
+                  HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
+                  // Report bug option
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .clickable {
+                        onDismiss()
+                        onShowBugReport()
+                      }
+                      .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Text(
+                      text = "🪲",
+                      fontSize = 18.sp,
+                      modifier = Modifier.padding(end = 12.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = "Report a Bug",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                      )
+                      Text(
+                        text = "Send diagnostics or feedback to loopzerotech@gmail.com",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                      )
+                    }
+                    Text(
+                      text = "➔",
+                      color = MaterialTheme.colorScheme.primary,
+                      fontWeight = FontWeight.Bold
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Footer Version info
+        Text(
+          text = "Loan Math v2.5.0 • Loop Zero",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+          modifier = Modifier.align(Alignment.CenterHorizontally),
+          textAlign = TextAlign.Center
+        )
+      }
+    }
+  }
+}
+
+@Composable
+fun PrivacyPolicyDialog(
+  lang: LanguageCode,
+  onDismiss: () -> Unit
+) {
+  Dialog(onDismissRequest = onDismiss) {
+    Card(
+      modifier = Modifier
+        .fillMaxWidth()
+        .heightIn(max = 560.dp)
+        .padding(16.dp),
+      colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+      shape = RoundedCornerShape(16.dp),
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+    ) {
+      Column(
+        modifier = Modifier
+          .fillMaxWidth()
+          .padding(16.dp)
+      ) {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Text(
+            text = Translations.get(TranslationKey.PRIVACY_POLICY_LABEL, lang),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+          )
+          IconButton(onClick = onDismiss) {
+            Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+          }
+        }
+        
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        
+        val scrollState = rememberScrollState()
+        Column(
+          modifier = Modifier
+            .weight(1f)
+            .verticalScroll(scrollState)
+            .padding(vertical = 8.dp)
+        ) {
+          Text(
+            text = """
+              Privacy Policy for Loan Math
+              Last Updated: June 7, 2026
+
+              At Loan Math, we value your privacy. This Privacy Policy describes how your personal info is processed.
+
+              1. Offline Calculation & Financial Data
+              • All calculation inputs (mortgages, interest, down payments) are processed locally on your device. None of your inputs are sent to our servers.
+              • Any saved configurations are stored locally inside sandboxed storage.
+
+              2. GDPR Compliance (General Data Protection Regulation)
+              • Loan Math is fully compliant with GDPR and UK GDPR rules.
+              • Privacy by Design (Article 25): All financial computations reside strictly inside your device's sandboxed storage. No user registration is required.
+              • Erasure Right (Article 17): You can instantly erase all local data by un-installing the app or clearing device storage (Settings > Apps > Loan Math > Storage > Clear Data).
+              • Support Data Processing: Contact emails are handled via legitimate interest and solely used to answer bug/support concerns.
+
+              3. Third-Party Services & Ads
+              • Google AdMob context-appropriate advertisements may be loaded, in accordance with Google's dynamic privacy policies.
+              • In-app simulation of premium services uses local sandboxing. No actual financial transactions are carried out on servers.
+
+              4. Contact Us & Support
+              • Email: loopzerotech@gmail.com
+            """.trimIndent(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+          )
+        }
+      }
+    }
+  }
 }
 
