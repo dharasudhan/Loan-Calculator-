@@ -1,9 +1,15 @@
 package com.example
 
+import android.app.Activity
 import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import android.util.Log
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.window.Dialog
@@ -118,6 +124,13 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    
+    try {
+      MobileAds.initialize(this) {}
+    } catch (e: Exception) {
+      Log.e("MainActivity", "AdMob initialization failed: ${e.message}")
+    }
+
     setContent {
       viewModelInstance = viewModel()
       MyApplicationTheme {
@@ -2901,6 +2914,11 @@ fun SimulatedPremiumUpgradeDialog(
   var isPurchaseInProgress by remember { mutableStateOf(false) }
   var isPurchaseSuccess by remember { mutableStateOf(false) }
 
+  val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+  val curSymbol = customCurrency ?: lang.currencySymbol
+  val formattedPrice = Translations.getLocalizedPremiumPrice(curSymbol)
+  val activity = LocalContext.current as? Activity
+
   Dialog(
     onDismissRequest = { if (!isPurchaseInProgress) onDismiss() }
   ) {
@@ -3062,12 +3080,21 @@ fun SimulatedPremiumUpgradeDialog(
           Spacer(modifier = Modifier.height(4.dp))
 
           Button(
-            onClick = { isPurchaseInProgress = true },
+            onClick = {
+              if (activity != null) {
+                viewModel.purchaseAdFreeReal(activity) {
+                  isPurchaseInProgress = true
+                }
+              } else {
+                isPurchaseInProgress = true
+              }
+            },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             modifier = Modifier.fillMaxWidth().testTag("buy_ad_free_premium_direct"),
             shape = RoundedCornerShape(14.dp)
           ) {
-            Text(Translations.get(TranslationKey.PREM_UPGRADE_BTN, lang), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            val buttonText = Translations.get(TranslationKey.PREM_UPGRADE_BTN, lang).replace("%s", formattedPrice)
+            Text(buttonText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
           }
 
           Button(
@@ -3092,21 +3119,6 @@ fun BannerAdComponent(
   val isAdFree by viewModel.isAdFreeVersion.collectAsState()
   if (isAdFree) return
 
-  var adIndex by remember { mutableStateOf(0) }
-
-  val ads = listOf(
-    "🏡 SmartRefi: Interest rates dropping! Refinance today to lock in 4.25% APR on home loans.",
-    "🛡️ SafeShield Premium: Protect your home! Quotes starting at just $45/month.",
-    "💳 EliteCard Zero Balance Transfer Fees: Consolidate high-interest debt up to $40k today."
-  )
-
-  LaunchedEffect(Unit) {
-    while (true) {
-      delay(7000)
-      adIndex = (adIndex + 1) % ads.size
-    }
-  }
-
   Box(
     modifier = Modifier
       .fillMaxWidth()
@@ -3119,28 +3131,19 @@ fun BannerAdComponent(
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Row(
+      Box(
         modifier = Modifier.weight(1f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        contentAlignment = Alignment.Center
       ) {
-        Box(
-          modifier = Modifier
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(3.dp))
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-        ) {
-          Text(
-            "AD",
-            style = androidx.compose.ui.text.TextStyle(fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-          )
-        }
-
-        Text(
-          text = ads[adIndex],
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          maxLines = 1,
-          fontWeight = FontWeight.Medium
+        androidx.compose.ui.viewinterop.AndroidView(
+          modifier = Modifier.fillMaxWidth().height(50.dp),
+          factory = { ctx ->
+            com.google.android.gms.ads.AdView(ctx).apply {
+              setAdSize(com.google.android.gms.ads.AdSize.BANNER)
+              adUnitId = "ca-app-pub-3940256099942544/6300978111"
+              loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
+            }
+          }
         )
       }
 

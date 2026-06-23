@@ -1,7 +1,9 @@
 package com.example
 
 import android.app.Application
+import android.app.Activity
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -68,6 +70,12 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
 
     private val prefs = application.getSharedPreferences("loan_calculator_prefs", Application.MODE_PRIVATE)
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+
+    // Play Billing Manager
+    val billingManager = PlayBillingManager(application, viewModelScope) { isPurchased ->
+        isAdFreeVersion.value = isPurchased
+        prefs.edit().putBoolean("isAdFreeVersion", isPurchased).apply()
+    }
 
     // Localization
     private val _currentLanguage = MutableStateFlow(LanguageCode.EN)
@@ -230,6 +238,10 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     fun purchaseAdFree() {
         isAdFreeVersion.value = true
         prefs.edit().putBoolean("isAdFreeVersion", true).apply()
+    }
+
+    fun purchaseAdFreeReal(activity: Activity, onFallbackSimulation: () -> Unit) {
+        billingManager.launchPurchaseFlow(activity, onFallbackSimulation)
     }
 
     fun resetAdFree() {

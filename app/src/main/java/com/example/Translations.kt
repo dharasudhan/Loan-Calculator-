@@ -269,7 +269,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "Instant Access to 'Loan Comparison' (No Ads!)",
             TranslationKey.PREM_BENEFIT_3 to "Instant Access to 'Debt Planner' (No Ads!)",
             TranslationKey.PREM_BENEFIT_4 to "Instant Access to 'Rent Vs Buy' (No Ads!)",
-            TranslationKey.PREM_UPGRADE_BTN to "Upgrade Ad-Free Premium ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "Upgrade Ad-Free Premium (%s)",
             TranslationKey.PREM_KEEP_FREE to "Keep Free Version (with Ads)",
             TranslationKey.AD_SPONSOR_LOADING to "Loading Sponsor Video... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "Preparing your premium analytical engine.",
@@ -422,7 +422,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "Acceso instantáneo a 'Comparación de Préstamos' (¡Sin Anuncios!)",
             TranslationKey.PREM_BENEFIT_3 to "Acceso instantáneo al 'Planificador de Deudas' (¡Sin Anuncios!)",
             TranslationKey.PREM_BENEFIT_4 to "Acceso instantáneo a 'Alquilar vs Comprar' (¡Sin Anuncios!)",
-            TranslationKey.PREM_UPGRADE_BTN to "Actualizar a Premium ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "Actualizar a Premium (%s)",
             TranslationKey.PREM_KEEP_FREE to "Mantener versión gratuita (con anuncios)",
             TranslationKey.AD_SPONSOR_LOADING to "Cargando Video del Patrocinador... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "Preparando su motor de análisis premium.",
@@ -573,7 +573,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "Accès instantané à 'Comparaison de Prêts' (Sans Pub !)",
             TranslationKey.PREM_BENEFIT_3 to "Accès instantané au 'Plan de Dette' (Sans Pub !)",
             TranslationKey.PREM_BENEFIT_4 to "Accès instantané à 'Louer vs Acheter' (Sans Pub !)",
-            TranslationKey.PREM_UPGRADE_BTN to "Mise à niveau Premium sans pub ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "Mise à niveau Premium sans pub (%s)",
             TranslationKey.PREM_KEEP_FREE to "Garder la version gratuite (avec publicités)",
             TranslationKey.AD_SPONSOR_LOADING to "Chargement de la vidéo sponsorisée... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "Préparation de votre moteur d'analyse premium.",
@@ -726,7 +726,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "Sofortiger Zugriff auf 'Kreditvergleich' (Keine Werbung!)",
             TranslationKey.PREM_BENEFIT_3 to "Sofortiger Zugriff auf den 'Schuldenplaner' (Keine Werbung!)",
             TranslationKey.PREM_BENEFIT_4 to "Sofortiger Zugriff auf 'Mieten vs Kaufen' (Keine Werbung!)",
-            TranslationKey.PREM_UPGRADE_BTN to "Premium-Upgrade durchführen ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "Premium-Upgrade durchführen (%s)",
             TranslationKey.PREM_KEEP_FREE to "Kostenlose Version behalten (mit Werbung)",
             TranslationKey.AD_SPONSOR_LOADING to "Sponsorenvideo wird geladen... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "Ihre Premium-Analyse-Engine wird vorbereitet.",
@@ -879,7 +879,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "'ऋण तुलना' तक त्वरित पहुँच (कोई विज्ञापन नहीं!)",
             TranslationKey.PREM_BENEFIT_3 to "'ऋण योजनाकार' तक त्वरित पहुँच (कोई विज्ञापन नहीं!)",
             TranslationKey.PREM_BENEFIT_4 to "'किराया बनाम खरीद' तक त्वरित पहुँच (कोई विज्ञापन नहीं!)",
-            TranslationKey.PREM_UPGRADE_BTN to "विज्ञापन-मुक्त प्रीमियम अपग्रेड करें ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "विज्ञापन-मुक्त प्रीमियम अपग्रेड करें (%s)",
             TranslationKey.PREM_KEEP_FREE to "निःशुल्क संस्करण जारी रखें (विज्ञापनों के साथ)",
             TranslationKey.AD_SPONSOR_LOADING to "प्रायोजित वीडियो लोड हो रहा है... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "आपके प्रीमियम विश्लेषणात्मक इंजन को तैयार किया जा रहा है।",
@@ -1032,7 +1032,7 @@ object Translations {
             TranslationKey.PREM_BENEFIT_2 to "'கடன் ஒப்பீடு' பக்கத்திற்கு உடனடி நுழைவு (விளம்பரங்கள் இல்லை!)",
             TranslationKey.PREM_BENEFIT_3 to "'கடன் திட்டமிடல்' பக்கத்திற்கு உடனடி நுழைவு (விளம்பரங்கள் இல்லை!)",
             TranslationKey.PREM_BENEFIT_4 to "'வாடகை vs கொள்முதல்' பக்கத்திற்கு உடனடி நுழைவு (விளம்பரங்கள் இல்லை!)",
-            TranslationKey.PREM_UPGRADE_BTN to "பிரீமியம் விளம்பரமற்ற மேம்படுத்தல் ($8.99)",
+            TranslationKey.PREM_UPGRADE_BTN to "பிரீமியம் விளம்பரமற்ற மேம்படுத்தல் (%s)",
             TranslationKey.PREM_KEEP_FREE to "இலவச பதிப்பைத் தொடரவும் (விளம்பரங்களுடன்)",
             TranslationKey.AD_SPONSOR_LOADING to "விளம்பரம் வீடியோ பதிவிறக்கம் செய்யப்படுகிறது... 📽️",
             TranslationKey.AD_PREPARING_ENGINE to "பகுப்பாய்வு அம்சங்களைத் தயாரிக்கிறது.",
@@ -1087,6 +1087,19 @@ object Translations {
 
     fun get(key: TranslationKey, lang: LanguageCode): String {
         return dict[lang]?.get(key) ?: dict[LanguageCode.EN]?.get(key) ?: ""
+    }
+
+    fun getLocalizedPremiumPrice(symbol: String): String {
+        return when (symbol) {
+            "$" -> "$8.99"
+            "€" -> "7.99 €"
+            "£" -> "£7.99"
+            "₹" -> "₹799.00"
+            "¥" -> "¥980"
+            "₩" -> "₩12,000"
+            "₪" -> "₪29.90"
+            else -> "$symbol 8.99"
+        }
     }
 }
 
