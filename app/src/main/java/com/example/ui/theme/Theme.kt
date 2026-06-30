@@ -9,35 +9,41 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimary,
-    secondary = DarkSecondary,
-    tertiary = DarkTertiary,
+private fun createDarkColorScheme(
+    primary: Color,
+    secondary: Color,
+    onPrimary: Color
+) = darkColorScheme(
+    primary = primary,
+    secondary = secondary,
+    tertiary = GlobalTertiary,
     background = DarkBackground,
     surface = DarkSurface,
-    onPrimary = OnDarkPrimary,
+    onPrimary = onPrimary,
     onBackground = OnDarkBackground,
-    onSurface = OnDarkSurface
+    onSurface = OnDarkSurface,
+    outline = primary, // Set outline to match primary color
+    outlineVariant = primary.copy(alpha = 0.5f)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    secondary = LightSecondary,
-    tertiary = LightTertiary,
-    background = LightBackground,
-    surface = LightSurface,
-    onPrimary = OnLightPrimary,
-    onBackground = OnLightBackground,
-    onSurface = OnLightSurface
-)
+private val GreenColorScheme = createDarkColorScheme(GreenPrimary, GreenSecondary, OnGreenPrimary)
+private val BlueColorScheme = createDarkColorScheme(BluePrimary, BlueSecondary, OnBluePrimary)
+private val RedColorScheme = createDarkColorScheme(RedPrimary, RedSecondary, OnRedPrimary)
+private val YellowColorScheme = createDarkColorScheme(YellowPrimary, YellowSecondary, OnYellowPrimary)
 
 @Composable
 fun MyApplicationTheme(
-  darkTheme: Boolean = true,
+  colorTheme: String = "blue",
   dynamicColor: Boolean = false, // disabled to enforce premium brand styling
   content: @Composable () -> Unit,
 ) {
-  val colorScheme = DarkColorScheme
+  val colorScheme = when (colorTheme) {
+      "green" -> GreenColorScheme
+      "red" -> RedColorScheme
+      "yellow" -> YellowColorScheme
+      else -> BlueColorScheme // default
+  }
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

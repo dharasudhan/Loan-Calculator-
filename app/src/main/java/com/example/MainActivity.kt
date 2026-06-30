@@ -66,6 +66,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -133,7 +134,8 @@ class MainActivity : ComponentActivity() {
 
     setContent {
       viewModelInstance = viewModel()
-      MyApplicationTheme {
+      val colorTheme by viewModelInstance.colorTheme.collectAsState()
+      MyApplicationTheme(colorTheme = colorTheme) {
         MainScreen(viewModelInstance)
       }
     }
@@ -498,7 +500,7 @@ fun InputsCard(
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
   val cur = customCurrency ?: lang.currencySymbol
 
-  Card(
+  OutlinedCard(
     modifier = Modifier
       .fillMaxWidth()
       .testTag("inputs_card"),
@@ -577,7 +579,7 @@ fun InputsCard(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
         
@@ -614,7 +616,7 @@ fun InputsCard(
           },
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
       } else {
@@ -634,7 +636,7 @@ fun InputsCard(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
       }
@@ -675,7 +677,7 @@ fun InputsCard(
           },
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
         
@@ -740,7 +742,7 @@ fun InputsCard(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         colors = OutlinedTextFieldDefaults.colors(
           focusedBorderColor = MaterialTheme.colorScheme.primary,
-          unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+          unfocusedBorderColor = MaterialTheme.colorScheme.outline
         )
       )
 
@@ -767,7 +769,7 @@ fun InputsCard(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
         
@@ -877,7 +879,7 @@ fun InputsCard(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 colors = OutlinedTextFieldDefaults.colors(
                   focusedBorderColor = MaterialTheme.colorScheme.primary,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                  unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
               )
 
@@ -908,7 +910,7 @@ fun InputsCard(
                 },
                 colors = OutlinedTextFieldDefaults.colors(
                   focusedBorderColor = MaterialTheme.colorScheme.primary,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                  unfocusedBorderColor = MaterialTheme.colorScheme.outline
                 )
               )
             }
@@ -983,7 +985,7 @@ fun InputsCard(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.primary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+              unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
           )
 
@@ -1000,7 +1002,7 @@ fun InputsCard(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.primary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+              unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
           )
         }
@@ -1032,7 +1034,7 @@ fun DashboardResultsCard(
   viewModel: LoanCalculatorViewModel
 ) {
   if (!result.isValid) {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -1050,7 +1052,7 @@ fun DashboardResultsCard(
     return
   }
 
-  Card(
+  OutlinedCard(
     modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(20.dp),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1144,7 +1146,7 @@ fun DashboardResultsCard(
 
       // Total Cost Split up Details Card
       Spacer(modifier = Modifier.height(8.dp))
-      Card(
+      OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
           containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
@@ -1211,7 +1213,7 @@ fun DashboardResultsCard(
           
           Spacer(modifier = Modifier.height(8.dp))
           
-          Card(
+          OutlinedCard(
               colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
               shape = RoundedCornerShape(12.dp),
               modifier = Modifier.fillMaxWidth()
@@ -1652,7 +1654,7 @@ fun DebtPlannerTab(
 
   @Composable
   fun HeaderSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -1679,7 +1681,7 @@ fun DebtPlannerTab(
 
   @Composable
   fun PayoffSettingsSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1708,7 +1710,7 @@ fun DebtPlannerTab(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
 
@@ -1771,7 +1773,7 @@ fun DebtPlannerTab(
 
   @Composable
   fun AddDebtSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1796,7 +1798,7 @@ fun DebtPlannerTab(
             .testTag("debt_name_input"),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
 
@@ -1817,7 +1819,7 @@ fun DebtPlannerTab(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.primary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+              unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
           )
 
@@ -1835,7 +1837,7 @@ fun DebtPlannerTab(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.primary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+              unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
           )
         }
@@ -1857,7 +1859,7 @@ fun DebtPlannerTab(
           keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
           colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
           )
         )
 
@@ -1895,7 +1897,7 @@ fun DebtPlannerTab(
   @Composable
   fun ExistingDebtsSection() {
     if (debts.isEmpty()) {
-      Card(
+      OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -1913,7 +1915,7 @@ fun DebtPlannerTab(
         }
       }
     } else {
-      Card(
+      OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1978,7 +1980,7 @@ fun DebtPlannerTab(
 
   @Composable
   fun PayoffResultsSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2068,7 +2070,7 @@ fun DebtPlannerTab(
 
   @Composable
   fun TimelineSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2129,7 +2131,7 @@ fun DebtPlannerTab(
             Spacer(modifier = Modifier.height(6.dp))
 
             // Split per loan
-            Card(
+            OutlinedCard(
               modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 8.dp, top = 2.dp, bottom = 4.dp),
@@ -2504,7 +2506,7 @@ fun DebtPortfolioBreakdown(
     Color(0xFF06B6D4)  // Custom Cyan
   )
 
-  Card(
+  OutlinedCard(
     modifier = modifier.fillMaxWidth(),
     shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2618,7 +2620,7 @@ fun DebtPayoffChart(
   val outlineColor = MaterialTheme.colorScheme.outlineVariant
   val bodyTextColor = MaterialTheme.colorScheme.onSurface
 
-  Card(
+  OutlinedCard(
     modifier = modifier.fillMaxWidth(),
     shape = RoundedCornerShape(16.dp),
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -2826,7 +2828,7 @@ fun DebtPayoffChart(
         selectedIndex?.let { idx ->
           if (idx in projection.indices) {
             val selectedMonth = projection[idx]
-            Card(
+            OutlinedCard(
               modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 4.dp, start = 8.dp, end = 8.dp)
@@ -2922,7 +2924,7 @@ fun SimulatedPremiumUpgradeDialog(
   Dialog(
     onDismissRequest = { if (!isPurchaseInProgress) onDismiss() }
   ) {
-    Card(
+    OutlinedCard(
       modifier = Modifier
         .fillMaxWidth()
         .padding(8.dp),
@@ -3206,7 +3208,7 @@ fun AdInteractiveScreen(
     Dialog(
       onDismissRequest = { /* force watching */ }
     ) {
-      Card(
+      OutlinedCard(
         modifier = Modifier
           .fillMaxWidth()
           .padding(8.dp),
@@ -3265,7 +3267,7 @@ fun AdInteractiveScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Card(
+            OutlinedCard(
               colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
               modifier = Modifier.fillMaxWidth(),
               shape = RoundedCornerShape(16.dp),
@@ -3353,11 +3355,11 @@ fun AdInteractiveScreen(
       .padding(16.dp),
     contentAlignment = Alignment.Center
   ) {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth().align(Alignment.Center),
       shape = RoundedCornerShape(24.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-      border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
       Column(
         modifier = Modifier.padding(24.dp),
@@ -3437,7 +3439,7 @@ fun ComparisonTab(
 
   @Composable
   fun HeaderSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
@@ -3473,7 +3475,7 @@ fun ComparisonTab(
 
   @Composable
   fun ErrorSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -3504,7 +3506,7 @@ fun ComparisonTab(
 
   @Composable
   fun ConfigSection() {
-    Card(
+    OutlinedCard(
       modifier = Modifier.fillMaxWidth(),
       shape = RoundedCornerShape(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -3533,7 +3535,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
 
@@ -3551,7 +3553,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
           }
@@ -3572,7 +3574,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
 
@@ -3589,7 +3591,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
           }
@@ -3609,7 +3611,7 @@ fun ComparisonTab(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.primary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+              unfocusedBorderColor = MaterialTheme.colorScheme.outline
             )
           )
         } else {
@@ -3627,7 +3629,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
 
@@ -3644,7 +3646,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
           }
@@ -3665,7 +3667,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
 
@@ -3682,7 +3684,7 @@ fun ComparisonTab(
               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
               colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
               )
             )
           }
@@ -3693,7 +3695,7 @@ fun ComparisonTab(
 
   @Composable
   fun SideBySideMatrix() {
-        Card(
+        OutlinedCard(
           modifier = Modifier.fillMaxWidth(),
           shape = RoundedCornerShape(16.dp),
           colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -3775,7 +3777,7 @@ fun ComparisonTab(
 
             val interestDiff = result.totalInterestPaid - compResult.totalInterestPaid
             if (interestDiff != 0.0) {
-              Card(
+              OutlinedCard(
                 colors = CardDefaults.cardColors(
                   containerColor = if (interestDiff < 0) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                   else MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
@@ -3797,7 +3799,7 @@ fun ComparisonTab(
                 )
               }
             } else {
-              Card(
+              OutlinedCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -3927,7 +3929,7 @@ fun ReportBugDialog(lang: LanguageCode, onDismiss: () -> Unit) {
   )
   
   Dialog(onDismissRequest = if (isSubmitting) {{}} else onDismiss) {
-    Card(
+    OutlinedCard(
       modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 16.dp),
@@ -4225,6 +4227,7 @@ fun SettingsScreen(
 ) {
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
   val isAdFree by viewModel.isAdFreeVersion.collectAsState()
+  val colorTheme by viewModel.colorTheme.collectAsState()
   var showPrivacyDialog by remember { mutableStateOf(false) }
 
   if (showPrivacyDialog) {
@@ -4234,14 +4237,14 @@ fun SettingsScreen(
   Dialog(
     onDismissRequest = onDismiss
   ) {
-    Card(
+    OutlinedCard(
       modifier = Modifier
         .fillMaxWidth()
         .heightIn(max = 680.dp)
         .padding(12.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
       shape = RoundedCornerShape(24.dp),
-      border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
       Column(
         modifier = Modifier
@@ -4290,6 +4293,58 @@ fun SettingsScreen(
             .weight(1f),
           verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+          // 0. Color Scheme Section
+          item {
+            Column {
+              Text(
+                text = "Color Scheme",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+              )
+              
+              OutlinedCard(
+                colors = CardDefaults.cardColors(
+                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+              ) {
+                Column {
+                  val themes = listOf("blue" to "Blue (Default)", "red" to "Red", "green" to "Green", "yellow" to "Yellow")
+                  themes.forEachIndexed { index, (mode, label) ->
+                    Row(
+                      modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.setColorTheme(mode) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                      Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = if (colorTheme == mode) FontWeight.Bold else FontWeight.Normal
+                      )
+                      if (colorTheme == mode) {
+                        Text(
+                          text = "✓",
+                          fontSize = 18.sp,
+                          fontWeight = FontWeight.Bold,
+                          color = MaterialTheme.colorScheme.primary
+                        )
+                      }
+                    }
+                    if (index < themes.size - 1) {
+                      HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           // 1. Language Section
           item {
             Column {
@@ -4301,7 +4356,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
               )
               
-              Card(
+              OutlinedCard(
                 colors = CardDefaults.cardColors(
                   containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ),
@@ -4360,7 +4415,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
               )
               
-              Card(
+              OutlinedCard(
                 colors = CardDefaults.cardColors(
                   containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ),
@@ -4431,7 +4486,7 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
               )
 
-              Card(
+              OutlinedCard(
                 colors = CardDefaults.cardColors(
                   containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ),
@@ -4535,14 +4590,14 @@ fun PrivacyPolicyDialog(
   onDismiss: () -> Unit
 ) {
   Dialog(onDismissRequest = onDismiss) {
-    Card(
+    OutlinedCard(
       modifier = Modifier
         .fillMaxWidth()
         .heightIn(max = 560.dp)
         .padding(16.dp),
       colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
       shape = RoundedCornerShape(16.dp),
-      border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+      border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
       Column(
         modifier = Modifier

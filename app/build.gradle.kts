@@ -125,3 +125,25 @@ dependencies {
 //  "ksp"(libs.androidx.room.compiler)
 //  "ksp"(libs.moshi.kotlin.codegen)
 }
+
+tasks.register("fixBorders") {
+    doLast {
+        val file = file("src/main/java/com/example/MainActivity.kt")
+        var content = file.readText()
+        content = content.replace("unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant", "unfocusedBorderColor = MaterialTheme.colorScheme.outline")
+        
+        // Add import for OutlinedCard
+        if (!content.contains("import androidx.compose.material3.OutlinedCard")) {
+            content = content.replace("import androidx.compose.material3.Card", "import androidx.compose.material3.Card\nimport androidx.compose.material3.OutlinedCard")
+        }
+        
+        // Replace " Card(" with " OutlinedCard("
+        // Also "Card(" at start of lines or after spaces
+        content = content.replace(Regex("(?<=[\\s(])Card\\("), "OutlinedCard(")
+        
+        content = content.replace("border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))", "border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)")
+        content = content.replace("border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)", "border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)")
+        
+        file.writeText(content)
+    }
+}

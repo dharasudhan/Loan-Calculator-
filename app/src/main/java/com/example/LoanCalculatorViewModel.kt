@@ -95,12 +95,12 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         prefs.edit().putString("custom_currency_symbol", symbol).apply()
     }
 
-    // Theme Mode ("system", "light", "dark")
-    val themeMode = MutableStateFlow("system")
+    // Color Theme ("blue", "red", "green", "yellow")
+    val colorTheme = MutableStateFlow("blue")
 
-    fun setThemeMode(mode: String) {
-        themeMode.value = mode
-        prefs.edit().putString("theme_mode", mode).apply()
+    fun setColorTheme(theme: String) {
+        colorTheme.value = theme
+        prefs.edit().putString("color_theme", theme).apply()
     }
 
     // Input States
@@ -175,7 +175,7 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
         homeInsurance.value = prefs.getString("homeInsurance", "0") ?: "0"
         pmiRate.value = prefs.getString("pmiRate", "0") ?: "0"
         
-        themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
+        colorTheme.value = prefs.getString("color_theme", "blue") ?: "blue"
         
         val savedLangStr = prefs.getString("current_language", "EN") ?: "EN"
         _currentLanguage.value = try {
