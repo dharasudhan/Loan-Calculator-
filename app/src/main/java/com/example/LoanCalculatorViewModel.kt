@@ -10,6 +10,7 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -67,6 +68,45 @@ data class DebtPlannerResult(
 )
 
 class LoanCalculatorViewModel(application: Application) : AndroidViewModel(application) {
+    val clearDataEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+    
+    fun clearAllData() {
+        viewModelScope.launch {
+            prefs.edit().clear().apply()
+            prefs.edit().putBoolean("isFirstTime", false).apply()
+            
+            loanType.value = "Mortgage"
+            homePrice.value = ""
+            downPayment.value = ""
+            loanAmountInput.value = ""
+            interestRate.value = ""
+            loanTermYears.value = ""
+            extraPayment.value = ""
+            propertyTaxRate.value = ""
+            homeInsurance.value = ""
+            pmiRate.value = ""
+            marginalTaxRate.value = ""
+            
+            isVariableRateEnabled.value = false
+            variablePeriodYears.value = ""
+            subsequentAdjustRate.value = ""
+            
+            _debtsList.value = emptyList()
+            debtPlannerBudget.value = ""
+            saveDebtsToPrefs(_debtsList.value)
+            saveInputsToPrefs()
+            
+            _currentLanguage.value = LanguageCode.EN
+            _customCurrencySymbol.value = null
+            colorTheme.value = "blue"
+
+            clearDataEvent.emit(Unit)
+            recalculate()
+            recalculateComparison()
+            recalculateDebtPlanner()
+        }
+    }
+
 
     private val prefs = application.getSharedPreferences("loan_calculator_prefs", Application.MODE_PRIVATE)
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
@@ -164,16 +204,34 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     }
 
     private fun loadFromPrefs() {
-        loanType.value = prefs.getString("loanType", "Mortgage") ?: "Mortgage"
-        homePrice.value = prefs.getString("homePrice", "0") ?: "0"
-        downPayment.value = prefs.getString("downPayment", "0") ?: "0"
-        loanAmountInput.value = prefs.getString("loanAmountInput", "0") ?: "0"
-        interestRate.value = prefs.getString("interestRate", "0") ?: "0"
-        loanTermYears.value = prefs.getString("loanTermYears", "0") ?: "0"
-        extraPayment.value = prefs.getString("extraPayment", "0") ?: "0"
-        propertyTaxRate.value = "0"
-        homeInsurance.value = prefs.getString("homeInsurance", "0") ?: "0"
-        pmiRate.value = prefs.getString("pmiRate", "0") ?: "0"
+        val isFirstTime = prefs.getBoolean("isFirstTime", true)
+        if (isFirstTime) {
+            prefs.edit().putBoolean("isFirstTime", false).apply()
+            loanType.value = "Mortgage"
+            homePrice.value = "350000"
+            downPayment.value = "70000"
+            loanAmountInput.value = "280000"
+            interestRate.value = "6.5"
+            loanTermYears.value = "30"
+            extraPayment.value = "0"
+            propertyTaxRate.value = "1.2"
+            homeInsurance.value = "1200"
+            pmiRate.value = "0.5"
+            marginalTaxRate.value = "24"
+            saveInputsToPrefs()
+        } else {
+            loanType.value = prefs.getString("loanType", "Mortgage") ?: "Mortgage"
+            homePrice.value = prefs.getString("homePrice", "") ?: ""
+            downPayment.value = prefs.getString("downPayment", "") ?: ""
+            loanAmountInput.value = prefs.getString("loanAmountInput", "") ?: ""
+            interestRate.value = prefs.getString("interestRate", "") ?: ""
+            loanTermYears.value = prefs.getString("loanTermYears", "") ?: ""
+            extraPayment.value = prefs.getString("extraPayment", "") ?: ""
+            propertyTaxRate.value = prefs.getString("propertyTaxRate", "") ?: ""
+            homeInsurance.value = prefs.getString("homeInsurance", "") ?: ""
+            pmiRate.value = prefs.getString("pmiRate", "") ?: ""
+            marginalTaxRate.value = prefs.getString("marginalTaxRate", "") ?: ""
+        }
         
         colorTheme.value = prefs.getString("color_theme", "blue") ?: "blue"
         
@@ -703,44 +761,48 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
             .distinct()
             .sorted()
 
-        val sensitiveAnalysisList = sensitivityRates.map { rVal ->
-            val mRate = rVal / 12.0 / 100.0
-            val mPi = if (mRate > 0.0) {
-                p * (mRate * (1.0 + mRate).pow(totalMonths.toDouble())) /
-                        ((1.0 + mRate).pow(totalMonths.toDouble()) - 1.0)
-            } else {
-                p / totalMonths
+        val sensitiveAnalysisList = if (annualRate <= 0.0) {
+            emptyList()
+        } else {
+            sensitivityRates.map { rVal ->
+                val mRate = rVal / 12.0 / 100.0
+                val mPi = if (mRate > 0.0) {
+                    p * (mRate * (1.0 + mRate).pow(totalMonths.toDouble())) /
+                            ((1.0 + mRate).pow(totalMonths.toDouble()) - 1.0)
+                } else {
+                    p / totalMonths
+                }
+
+                // Run simple simulate schedule
+                var balSim = p
+                var totalIntSim = 0.0
+                var monthSim = 0
+                while (balSim > 0.0 && monthSim < totalMonths) {
+                    monthSim++
+                    val intSimMonth = balSim * mRate
+                    var prinSimMonth = mPi - intSimMonth
+                    if (prinSimMonth > balSim) prinSimMonth = balSim
+                    else if (prinSimMonth < 0.0) prinSimMonth = 0.0
+                    
+                    val allowedExtra = max(0.0, balSim - prinSimMonth)
+                    val appliedExtra = min(extra, allowedExtra)
+                    balSim -= (prinSimMonth + appliedExtra)
+                    totalIntSim += intSimMonth
+                }
+
+                val curMonthlyTotal = mPi + otherMonthlyExpenses
+                val baseMonthlyTotal = monthlyPi + otherMonthlyExpenses
+                val mDelta = curMonthlyTotal - baseMonthlyTotal
+                val iDelta = totalIntSim - totalInterestPaid
+
+                SensitivityItem(
+                    rate = rVal,
+                    monthlyPayment = curMonthlyTotal + extra,
+                    totalInterest = totalIntSim,
+                    deltaMonthly = mDelta,
+                    deltaInterest = iDelta
+                )
             }
-
-            // Run simple simulate schedule
-            var balSim = p
-            var totalIntSim = 0.0
-            var monthSim = 0
-            while (balSim > 0.0 && monthSim < totalMonths) {
-                monthSim++
-                val intSimMonth = balSim * mRate
-                var prinSimMonth = mPi - intSimMonth
-                if (prinSimMonth > balSim) prinSimMonth = balSim
-                else if (prinSimMonth < 0.0) prinSimMonth = 0.0
-                
-                val allowedExtra = max(0.0, balSim - prinSimMonth)
-                val appliedExtra = min(extra, allowedExtra)
-                balSim -= (prinSimMonth + appliedExtra)
-                totalIntSim += intSimMonth
-            }
-
-            val curMonthlyTotal = mPi + otherMonthlyExpenses
-            val baseMonthlyTotal = monthlyPi + otherMonthlyExpenses
-            val mDelta = curMonthlyTotal - baseMonthlyTotal
-            val iDelta = totalIntSim - totalInterestPaid
-
-            SensitivityItem(
-                rate = rVal,
-                monthlyPayment = curMonthlyTotal + extra,
-                totalInterest = totalIntSim,
-                deltaMonthly = mDelta,
-                deltaInterest = iDelta
-            )
         }
 
         _calculationResult.value = CalculationResult(

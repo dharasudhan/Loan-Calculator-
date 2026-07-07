@@ -14,7 +14,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -58,6 +60,13 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Balance
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.AlertDialog
@@ -79,6 +88,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -122,12 +133,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 class MainActivity : ComponentActivity() {
   private lateinit var viewModelInstance: LoanCalculatorViewModel
 
+  override fun getAttributionTag(): String? {
+    return "play-services-ads"
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     
     try {
       MobileAds.initialize(this) {}
+      InterstitialAdHelper.loadAd(this)
     } catch (e: Exception) {
       Log.e("MainActivity", "AdMob initialization failed: ${e.message}")
     }
@@ -135,8 +151,47 @@ class MainActivity : ComponentActivity() {
     setContent {
       viewModelInstance = viewModel()
       val colorTheme by viewModelInstance.colorTheme.collectAsState()
+      
+      var showSplash by remember { mutableStateOf(true) }
+      
+      LaunchedEffect(Unit) {
+          kotlinx.coroutines.delay(1500)
+          showSplash = false
+      }
+      
       MyApplicationTheme(colorTheme = colorTheme) {
-        MainScreen(viewModelInstance)
+        if (showSplash) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(MaterialTheme.colorScheme.primary, shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("LM", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Loan Math",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Your Financial Compass",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            MainScreen(viewModelInstance)
+        }
       }
     }
   }
@@ -423,6 +478,8 @@ fun CalculatorTab(
   loanTypeVal: String
 ) {
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val curSymbol = customCurrency ?: lang.currencySymbol
   val scrollState = rememberScrollState()
 
@@ -497,7 +554,24 @@ fun InputsCard(
   var margTaxInput by remember { mutableStateOf(viewModel.marginalTaxRate.value) }
   var activeHelpType by remember { mutableStateOf<HelpType?>(null) }
 
+  androidx.compose.runtime.LaunchedEffect(Unit) {
+      viewModel.clearDataEvent.collect {
+          homePriceInput = ""
+          downPaymentInput = ""
+          loanAmtInput = ""
+          intRateInput = ""
+          loanTermInput = ""
+          extraPaymentInput = ""
+          propTaxInput = ""
+          insInput = ""
+          pmiInput = ""
+          margTaxInput = ""
+      }
+  }
+
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val cur = customCurrency ?: lang.currencySymbol
 
   OutlinedCard(
@@ -683,43 +757,43 @@ fun InputsCard(
         
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Simple interactive speed adjustments
-        IconButton(
-          onClick = {
-            val curVal = intRateInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = max(0.0, curVal - 0.25).format(2)
-            intRateInput = newVal
-            viewModel.interestRate.value = newVal
-            viewModel.updateInputs()
-          },
-          modifier = Modifier
-            .size(36.dp)
-            .background(
-              MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-              CircleShape
-            )
-        ) {
-          Text("-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          // Simple interactive speed adjustments
+          IconButton(
+            onClick = {
+              val curVal = intRateInput.parseToDoubleOrNull() ?: 0.0
+              val newVal = max(0.0, curVal - 0.25).format(2)
+              intRateInput = newVal
+              viewModel.interestRate.value = newVal
+              viewModel.updateInputs()
+            },
+            modifier = Modifier
+              .size(36.dp)
+              .background(
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                CircleShape
+              )
+          ) {
+            Text("-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        IconButton(
-          onClick = {
-            val curVal = intRateInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = min(35.0, curVal + 0.25).format(2)
-            intRateInput = newVal
-            viewModel.interestRate.value = newVal
-            viewModel.updateInputs()
-          },
-          modifier = Modifier
-            .size(36.dp)
-            .background(
-              MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-              CircleShape
-            )
-        ) {
-          Text("+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          IconButton(
+            onClick = {
+              val curVal = intRateInput.parseToDoubleOrNull() ?: 0.0
+              val newVal = min(35.0, curVal + 0.25).format(2)
+              intRateInput = newVal
+              viewModel.interestRate.value = newVal
+              viewModel.updateInputs()
+            },
+            modifier = Modifier
+              .size(36.dp)
+              .background(
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                CircleShape
+              )
+          ) {
+            Text("+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          }
         }
       }
 
@@ -775,44 +849,44 @@ fun InputsCard(
         
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Quick set minus button for extras
-        IconButton(
-          onClick = {
-            val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = max(0.0, curVal - 50.0).toLong().toString()
-            extraPaymentInput = newVal
-            viewModel.extraPayment.value = newVal
-            viewModel.updateInputs()
-          },
-          modifier = Modifier
-            .size(36.dp)
-            .background(
-              MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-              CircleShape
-            )
-        ) {
-          Text("-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          // Quick set minus button for extras
+          IconButton(
+            onClick = {
+              val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
+              val newVal = max(0.0, curVal - 50.0).toLong().toString()
+              extraPaymentInput = newVal
+              viewModel.extraPayment.value = newVal
+              viewModel.updateInputs()
+            },
+            modifier = Modifier
+              .size(36.dp)
+              .background(
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                CircleShape
+              )
+          ) {
+            Text("-", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Quick set plus button for extras
-        IconButton(
-          onClick = {
-            val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
-            val newVal = min(1000000.0, curVal + 50.0).toLong().toString()
-            extraPaymentInput = newVal
-            viewModel.extraPayment.value = newVal
-            viewModel.updateInputs()
-          },
-          modifier = Modifier
-            .size(36.dp)
-            .background(
-              MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
-              CircleShape
-            )
-        ) {
-          Text("+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          // Quick set plus button for extras
+          IconButton(
+            onClick = {
+              val curVal = extraPaymentInput.parseToDoubleOrNull() ?: 0.0
+              val newVal = min(1000000.0, curVal + 50.0).toLong().toString()
+              extraPaymentInput = newVal
+              viewModel.extraPayment.value = newVal
+              viewModel.updateInputs()
+            },
+            modifier = Modifier
+              .size(36.dp)
+              .background(
+                MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                CircleShape
+              )
+          ) {
+            Text("+", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+          }
         }
       }
 
@@ -1469,6 +1543,8 @@ fun AmortizationTab(
 ) {
   val context = LocalContext.current
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val curSymbol = customCurrency ?: lang.currencySymbol
   var viewByMonthly by remember { mutableStateOf(false) }
 
@@ -1520,18 +1596,37 @@ fun AmortizationTab(
       // PDF Share Button
       Button(
         onClick = {
-          val success = PdfReportExporter.generateAndSharePdf(
-            context = context,
-            result = result,
-            lang = lang,
-            loanType = loanTypeVal,
-            byMonthly = viewByMonthly,
-            currencySymbol = customCurrency
-          )
-          if (success) {
-            Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+          val activity = context.findActivity()
+          if (activity != null) {
+            InterstitialAdHelper.showAdIfReady(activity) {
+              val success = PdfReportExporter.generateAndSharePdf(
+                context = context,
+                result = result,
+                lang = lang,
+                loanType = loanTypeVal,
+                byMonthly = viewByMonthly,
+                currencySymbol = customCurrency
+              )
+              if (success) {
+                Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+              } else {
+                Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+              }
+            }
           } else {
-            Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+            val success = PdfReportExporter.generateAndSharePdf(
+              context = context,
+              result = result,
+              lang = lang,
+              loanType = loanTypeVal,
+              byMonthly = viewByMonthly,
+              currencySymbol = customCurrency
+            )
+            if (success) {
+              Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+            } else {
+              Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+            }
           }
         },
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -1639,6 +1734,8 @@ fun DebtPlannerTab(
 ) {
   val context = LocalContext.current
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val cur = customCurrency ?: lang.currencySymbol
   val debts by viewModel.debtsList.collectAsState()
   val budgetStr by viewModel.debtPlannerBudget.collectAsState()
@@ -1649,6 +1746,17 @@ fun DebtPlannerTab(
   var newDebtBalance by remember { mutableStateOf("") }
   var newDebtIntRate by remember { mutableStateOf("") }
   var newDebtMinPay by remember { mutableStateOf("") }
+
+  androidx.compose.runtime.LaunchedEffect(Unit) {
+      viewModel.clearDataEvent.collect {
+          newDebtName = ""
+          newDebtBalance = ""
+          newDebtIntRate = ""
+          newDebtMinPay = ""
+      }
+  }
+
+
 
   val sumMinPayments = debts.sumOf { it.minimumPayment }
 
@@ -2001,18 +2109,37 @@ fun DebtPlannerTab(
           Button(
             onClick = {
               val budget = budgetStr.parseToDoubleOrNull() ?: 0.0
-              val success = PdfReportExporter.generateAndShareDebtPlanPdf(
-                context = context,
-                debts = debts,
-                budget = budget,
-                strategy = strategy,
-                result = result,
-                lang = lang
-              )
-              if (success) {
-                Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+              val activity = context.findActivity()
+              if (activity != null) {
+                InterstitialAdHelper.showAdIfReady(activity) {
+                  val success = PdfReportExporter.generateAndShareDebtPlanPdf(
+                    context = context,
+                    debts = debts,
+                    budget = budget,
+                    strategy = strategy,
+                    result = result,
+                    lang = lang
+                  )
+                  if (success) {
+                    Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+                  } else {
+                    Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+                  }
+                }
               } else {
-                Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+                val success = PdfReportExporter.generateAndShareDebtPlanPdf(
+                  context = context,
+                  debts = debts,
+                  budget = budget,
+                  strategy = strategy,
+                  result = result,
+                  lang = lang
+                )
+                if (success) {
+                  Toast.makeText(context, Translations.get(TranslationKey.PDF_SUCCESS, lang), Toast.LENGTH_LONG).show()
+                } else {
+                  Toast.makeText(context, Translations.get(TranslationKey.PDF_ERROR, lang), Toast.LENGTH_SHORT).show()
+                }
               }
             },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -2917,9 +3044,11 @@ fun SimulatedPremiumUpgradeDialog(
   var isPurchaseSuccess by remember { mutableStateOf(false) }
 
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val curSymbol = customCurrency ?: lang.currencySymbol
   val formattedPrice = Translations.getLocalizedPremiumPrice(curSymbol)
-  val activity = LocalContext.current as? Activity
+  val activity = LocalContext.current.findActivity()
 
   Dialog(
     onDismissRequest = { if (!isPurchaseInProgress) onDismiss() }
@@ -2994,7 +3123,7 @@ fun SimulatedPremiumUpgradeDialog(
             modifier = Modifier.fillMaxWidth().testTag("upgrade_superb_ok"),
             shape = RoundedCornerShape(12.dp)
           ) {
-            Text(Translations.get(TranslationKey.PREM_SUPERB, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(Translations.get(TranslationKey.PREM_SUPERB, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
           }
         } else if (isAdFree) {
           Box(
@@ -3027,7 +3156,7 @@ fun SimulatedPremiumUpgradeDialog(
             modifier = Modifier.fillMaxWidth().testTag("premium_already_active_done"),
             shape = RoundedCornerShape(12.dp)
           ) {
-            Text(Translations.get(TranslationKey.PREM_GREAT, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(Translations.get(TranslationKey.PREM_GREAT, lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
           }
         } else {
           // Purchase Screen
@@ -3096,7 +3225,7 @@ fun SimulatedPremiumUpgradeDialog(
             shape = RoundedCornerShape(14.dp)
           ) {
             val buttonText = Translations.get(TranslationKey.PREM_UPGRADE_BTN, lang).replace("%s", formattedPrice)
-            Text(buttonText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(buttonText, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
           }
 
           Button(
@@ -3105,7 +3234,7 @@ fun SimulatedPremiumUpgradeDialog(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp)
           ) {
-            Text(Translations.get(TranslationKey.PREM_KEEP_FREE, lang), style = MaterialTheme.typography.bodyMedium)
+            Text(Translations.get(TranslationKey.PREM_KEEP_FREE, lang), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
           }
         }
       }
@@ -3165,185 +3294,49 @@ fun AdInteractiveScreen(
   lang: LanguageCode,
   onUnlocked: () -> Unit
 ) {
-  var showSimulatedAd by remember { mutableStateOf(false) }
   var adLoading by remember { mutableStateOf(false) }
-  var secondsLeft by remember { mutableStateOf(5) }
   val context = LocalContext.current
+  val coroutineScope = rememberCoroutineScope()
 
-  val adsList = when (lang) {
-    LanguageCode.ES -> listOf(
-      "Refinanciación SmartRefi\n¡Las tasas de interés de préstamos hipotecarios han bajado! Refinancie ahora para asegurar un 4.25% APR y ahorrar un promedio de $350 al mes.",
-      "Protección SafeShield\nDesde solo $45 al mes, proteja sus bienes inmuebles de manera segura con el proveedor de seguros de hogar mejor calificado del año.",
-      "Transferencias EliteCard\nCombine múltiples tarjetas de crédito en un solo pago mensual con una tasa APR de introducción del 0% durante 18 meses."
-    )
-    LanguageCode.FR -> listOf(
-      "Réfiancement SmartRefi\nLes taux d'intérêt sur les prêts hypothécaires sont en baisse ! Réfiancez dès maintenant pour obtenir un taux de 4,25% et économiser 350 $ par mois.",
-      "Protection SafeShield\nÀ partir de seulement 45 $/mois, protégez vos biens immobiliers de manière fiable grâce à l'assurance habitation la mieux notée de l'année.",
-      "Transfert de Solde EliteCard\nRegroupez plusieurs cartes de crédit en un seul paiement mensuel avec un taux d'intérêt de 0% pendant 18 mois."
-    )
-    LanguageCode.DE -> listOf(
-      "SmartRefi Refinanzierung\nDie Bauzinsen sinken! Refinanzieren Sie jetzt zu einem h_effektiven Jahreszins von 4,25% und sparen Sie durchschnittlich 350 $ im Monat.",
-      "SafeShield Heimschutz\nAb nur 45 $/Monat - sichern Sie Ihr Eigenheim bei dem am besten bewerteten Wohngebäudeversicherer des Jahres ab.",
-      "EliteCard Guthabenübertrag\nFassen Sie mehrere Kreditkarten in einer monatlichen Rate mit 0% Einführungszins für 18 Monate zusammen."
-    )
-    LanguageCode.HI -> listOf(
-      "स्मार्टरेफी पुनर्वित्त (SmartRefi Refinancing)\nगृह ऋण ब्याज दरें नीचे आ गई हैं! 4.25% APR सुरक्षित करने और हर महीने औसतन $350 बचाने के लिए अभी पुनर्वित्त करें।",
-      "सेफशील्ड होमगार्ड (SafeShield Homeguard)\nमात्र $45/माह से शुरू, वर्ष के उच्चतम श्रेणी के गृह बीमा प्रदाता के साथ अपनी अचल संपत्ति को सुरक्षित रखें।",
-      "एलीटकार्ड बैलेंस ट्रांसफर (EliteCard Transfers)\n18 महीनों के लिए 0% परिचयात्मक APR के साथ कई क्रेडिट कार्डों को एक मासिक भुगतान में संयोजित करें।",
-    )
-    LanguageCode.TA -> listOf(
-      "ஸ்மார்ட்ரெஃபி மறுநிதியளிப்பு (SmartRefi Refinancing)\nவீட்டுக்கடன் வட்டி விகிதங்கள் குறைந்துள்ளன! 4.25% APR வட்டி விகிதத்தைப் பெறவும், சராசரியாக மாதத்திற்கு $350 சேமிக்கவும் இப்போதே விண்ணப்பிக்கவும்.",
-      "சேஃப்ஷீல்டு ஹோம்கார்டு (SafeShield Homeguard)\nமாதம் வெறும் $45 முதல் தொடங்கும் வீட்டுக் காப்பீடு மூலம் உங்கள் சொத்துக்களைப் பாதுகாப்பாக வைத்திருங்கள்.",
-      "எலைட்கார்டு பேலன்ஸ் டிரான்ஸ்ஃபர் (EliteCard Transfers)\n18 மாதங்களுக்கு 0% வட்டியில் உங்கள் பல கிரெடிட் கார்டு நிலுவைகளை ஒரே சுலபத் தவணையாக மாற்றிக் கொள்ளுங்கள்."
-    )
-    else -> listOf(
-      "SmartRefi Refinancing\nHome loan interest rates are down! Refinance now to secure 4.25% APR and save an average of $350 every month.",
-      "SafeShield Homeguard\nStarting at just $45/month, safeguard your real estate with the highest rated home insurance provider of the year.",
-      "EliteCard Balance Transfers\nCombine multiple credit cards into one monthly payment with 0% introductory APR for 18 months."
-    )
+  // Pre-load the ad when entering this screen
+  LaunchedEffect(Unit) {
+    InterstitialAdHelper.loadAd(context)
   }
-  val activeAdIndex = remember { (0 until adsList.size).random() }
 
-  if (showSimulatedAd) {
+  if (adLoading) {
     Dialog(
-      onDismissRequest = { /* force watching */ }
+      onDismissRequest = { /* prevent dismiss while loading */ }
     ) {
       OutlinedCard(
         modifier = Modifier
           .fillMaxWidth()
-          .padding(8.dp),
+          .padding(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
       ) {
         Column(
-          modifier = Modifier.padding(20.dp),
+          modifier = Modifier.padding(24.dp),
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-          if (adLoading) {
-            Text(
-              Translations.get(TranslationKey.AD_SPONSOR_LOADING, lang),
-              style = MaterialTheme.typography.titleMedium,
-              fontWeight = FontWeight.Bold,
-              color = MaterialTheme.colorScheme.primary
-            )
-            CircularProgressIndicator(
-              modifier = Modifier.size(48.dp),
-              color = MaterialTheme.colorScheme.primary,
-              strokeWidth = 4.dp
-            )
-            Text(
-              Translations.get(TranslationKey.AD_PREPARING_ENGINE, lang),
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              textAlign = TextAlign.Center
-            )
-            LaunchedEffect(Unit) {
-              delay(1500)
-              adLoading = false
-            }
-          } else {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.SpaceBetween,
-              verticalAlignment = Alignment.CenterVertically
-            ) {
-              Box(
-                modifier = Modifier
-                  .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                  .padding(horizontal = 6.dp, vertical = 2.dp)
-              ) {
-                Text(Translations.get(TranslationKey.AD_SPONSORED_LABEL, lang), style = MaterialTheme.typography.labelSmall, color = Color.Black, fontWeight = FontWeight.Bold)
-              }
-
-              Text(
-                text = if (secondsLeft > 0) Translations.get(TranslationKey.AD_SECONDS_LEFT, lang).format(secondsLeft) else Translations.get(TranslationKey.AD_COMPLETED, lang),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = if (secondsLeft > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-              )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            OutlinedCard(
-              colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)),
-              modifier = Modifier.fillMaxWidth(),
-              shape = RoundedCornerShape(16.dp),
-              border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-            ) {
-              Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-              ) {
-                Box(
-                  modifier = Modifier
-                    .size(64.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape),
-                  contentAlignment = Alignment.Center
-                ) {
-                  Text(if (activeAdIndex == 0) "🏠" else if (activeAdIndex == 1) "🛡️" else "💳", fontSize = 32.sp)
-                }
-
-                val fullAdText = adsList[activeAdIndex].split("\n")
-                Text(
-                  text = fullAdText[0],
-                  style = MaterialTheme.typography.titleMedium,
-                  fontWeight = FontWeight.Bold,
-                  color = MaterialTheme.colorScheme.primary,
-                  textAlign = TextAlign.Center
-                )
-                Text(
-                  text = fullAdText[1],
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurface,
-                  textAlign = TextAlign.Center,
-                  lineHeight = 18.sp
-                )
-
-                Button(
-                  onClick = { /* click */ },
-                  colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                  Text(Translations.get(TranslationKey.AD_LEARN_MORE, lang), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                }
-              }
-            }
-
-            LaunchedEffect(secondsLeft) {
-              if (secondsLeft > 0) {
-                delay(1000)
-                secondsLeft -= 1
-              }
-            }
-
-            Button(
-              onClick = {
-                if (secondsLeft <= 0) {
-                  onUnlocked()
-                  showSimulatedAd = false
-                  Toast.makeText(context, Translations.get(TranslationKey.AD_UNLOCK_SUCCESS, lang), Toast.LENGTH_SHORT).show()
-                } else {
-                  Toast.makeText(context, Translations.get(TranslationKey.AD_FINISH_PROMPT, lang), Toast.LENGTH_SHORT).show()
-                }
-              },
-              enabled = secondsLeft <= 0,
-              colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-              ),
-              modifier = Modifier.fillMaxWidth().testTag("claim_unlock_btn"),
-              shape = RoundedCornerShape(12.dp)
-            ) {
-              Text(
-                text = if (secondsLeft > 0) Translations.get(TranslationKey.AD_WATCH_TO_UNLOCK, lang) else Translations.get(TranslationKey.AD_CLAIM_UNLOCK, lang),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium
-              )
-            }
-          }
+          Text(
+            text = Translations.get(TranslationKey.AD_SPONSOR_LOADING, lang),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+          )
+          CircularProgressIndicator(
+            modifier = Modifier.size(48.dp),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 4.dp
+          )
+          Text(
+            text = Translations.get(TranslationKey.AD_PREPARING_ENGINE, lang),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+          )
         }
       }
     }
@@ -3393,9 +3386,35 @@ fun AdInteractiveScreen(
 
         Button(
           onClick = {
-            secondsLeft = 5
-            adLoading = true
-            showSimulatedAd = true
+            val activity = context.findActivity()
+            if (activity != null) {
+              if (InterstitialAdHelper.isAdReady()) {
+                InterstitialAdHelper.showAdIfReady(activity) {
+                  onUnlocked()
+                  Toast.makeText(context, Translations.get(TranslationKey.AD_UNLOCK_SUCCESS, lang), Toast.LENGTH_SHORT).show()
+                }
+              } else {
+                adLoading = true
+                InterstitialAdHelper.loadAd(activity)
+                coroutineScope.launch {
+                  var attempts = 0
+                  // Check every 100ms for up to 1.5 seconds if the ad becomes ready
+                  while (attempts < 15 && !InterstitialAdHelper.isAdReady()) {
+                    delay(100)
+                    attempts++
+                  }
+                  adLoading = false
+                  // Show the ad if it is ready, otherwise just unlock (seamless fallback)
+                  InterstitialAdHelper.showAdIfReady(activity) {
+                    onUnlocked()
+                    Toast.makeText(context, Translations.get(TranslationKey.AD_UNLOCK_SUCCESS, lang), Toast.LENGTH_SHORT).show()
+                  }
+                }
+              }
+            } else {
+              onUnlocked()
+              Toast.makeText(context, Translations.get(TranslationKey.AD_UNLOCK_SUCCESS, lang), Toast.LENGTH_SHORT).show()
+            }
           },
           colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
           modifier = Modifier.fillMaxWidth().testTag("unlock_${featureName.replace(" ", "_").lowercase()}"),
@@ -3415,6 +3434,8 @@ fun ComparisonTab(
   lang: LanguageCode
 ) {
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val cur = customCurrency ?: lang.currencySymbol
   val isCompEnabled = true
   
@@ -3454,7 +3475,12 @@ fun ComparisonTab(
             .background(MaterialTheme.colorScheme.primary, CircleShape)
             .padding(8.dp)
         ) {
-          Text("⚖️", fontSize = 20.sp)
+          Icon(
+            imageVector = Icons.Default.Balance,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(24.dp)
+          )
         }
         Column {
           Text(
@@ -4218,6 +4244,28 @@ fun HelpTooltipDialog(
     )
 }
 
+private fun getColorSchemeTitle(lang: LanguageCode): String {
+    return when (lang) {
+        LanguageCode.ES -> "Esquema de Colores"
+        LanguageCode.FR -> "Schéma de Couleurs"
+        LanguageCode.DE -> "Farbschema"
+        LanguageCode.HI -> "रंग योजना"
+        LanguageCode.TA -> "வண்ணத் திட்டம்"
+        else -> "Color Scheme"
+    }
+}
+
+private fun getColorThemeName(mode: String, lang: LanguageCode): String {
+    return when (lang) {
+        LanguageCode.ES -> when (mode) { "blue" -> "Azul (Predeterminado)"; "red" -> "Rojo"; "green" -> "Verde"; "yellow" -> "Amarillo"; else -> "" }
+        LanguageCode.FR -> when (mode) { "blue" -> "Bleu (Par défaut)"; "red" -> "Rouge"; "green" -> "Vert"; "yellow" -> "Jaune"; else -> "" }
+        LanguageCode.DE -> when (mode) { "blue" -> "Blau (Standard)"; "red" -> "Rot"; "green" -> "Grün"; "yellow" -> "Gelb"; else -> "" }
+        LanguageCode.HI -> when (mode) { "blue" -> "नीला (डिफ़ॉल्ट)"; "red" -> "लाल"; "green" -> "हरा"; "yellow" -> "पीला"; else -> "" }
+        LanguageCode.TA -> when (mode) { "blue" -> "நீலம் (இயல்புநிலை)"; "red" -> "சிவப்பு"; "green" -> "பச்சை"; "yellow" -> "மஞ்சள்"; else -> "" }
+        else -> when (mode) { "blue" -> "Blue (Default)"; "red" -> "Red"; "green" -> "Green"; "yellow" -> "Yellow"; else -> "" }
+    }
+}
+
 @Composable
 fun SettingsScreen(
   viewModel: LoanCalculatorViewModel,
@@ -4226,6 +4274,8 @@ fun SettingsScreen(
   onShowBugReport: () -> Unit
 ) {
   val customCurrency by viewModel.customCurrencySymbol.collectAsState()
+
+
   val isAdFree by viewModel.isAdFreeVersion.collectAsState()
   val colorTheme by viewModel.colorTheme.collectAsState()
   var showPrivacyDialog by remember { mutableStateOf(false) }
@@ -4258,10 +4308,11 @@ fun SettingsScreen(
           horizontalArrangement = Arrangement.SpaceBetween
         ) {
           Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-              text = "⚙️",
-              fontSize = 22.sp,
-              modifier = Modifier.padding(end = 8.dp)
+            Icon(
+              imageVector = Icons.Default.Settings,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.primary,
+              modifier = Modifier.padding(end = 8.dp).size(24.dp)
             )
             Text(
               text = Translations.get(TranslationKey.SETTINGS_TITLE, lang),
@@ -4293,52 +4344,61 @@ fun SettingsScreen(
             .weight(1f),
           verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-          // 0. Color Scheme Section
+          // 0.5. Color Scheme Section
           item {
             Column {
               Text(
-                text = "Color Scheme",
+                text = getColorSchemeTitle(lang),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 8.dp)
               )
               
-              OutlinedCard(
-                colors = CardDefaults.cardColors(
-                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-              ) {
-                Column {
-                  val themes = listOf("blue" to "Blue (Default)", "red" to "Red", "green" to "Green", "yellow" to "Yellow")
-                  themes.forEachIndexed { index, (mode, label) ->
-                    Row(
-                      modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.setColorTheme(mode) }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                      verticalAlignment = Alignment.CenterVertically,
-                      horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                      Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = if (colorTheme == mode) FontWeight.Bold else FontWeight.Normal
-                      )
-                      if (colorTheme == mode) {
+              var colorThemeDropdownExpanded by remember { mutableStateOf(false) }
+              Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                  colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                  ),
+                  shape = RoundedCornerShape(16.dp),
+                  modifier = Modifier.fillMaxWidth().clickable { colorThemeDropdownExpanded = true }
+                ) {
+                  Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Text(
+                      text = getColorThemeName(colorTheme, lang),
+                      style = MaterialTheme.typography.bodyLarge,
+                      color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text("▼", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                  }
+                }
+                
+                DropdownMenu(
+                  expanded = colorThemeDropdownExpanded,
+                  onDismissRequest = { colorThemeDropdownExpanded = false },
+                  modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                  val themes = listOf("blue", "red", "green", "yellow")
+                  themes.forEach { mode ->
+                    DropdownMenuItem(
+                      text = {
                         Text(
-                          text = "✓",
-                          fontSize = 18.sp,
-                          fontWeight = FontWeight.Bold,
-                          color = MaterialTheme.colorScheme.primary
+                          text = getColorThemeName(mode, lang),
+                          style = MaterialTheme.typography.bodyLarge,
+                          fontWeight = if (colorTheme == mode) FontWeight.Bold else FontWeight.Normal,
+                          color = MaterialTheme.colorScheme.onSurface
                         )
+                      },
+                      onClick = {
+                        viewModel.setColorTheme(mode)
+                        colorThemeDropdownExpanded = false
                       }
-                    }
-                    if (index < themes.size - 1) {
-                      HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                    }
+                    )
                   }
                 }
               }
@@ -4356,48 +4416,63 @@ fun SettingsScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
               )
               
-              OutlinedCard(
-                colors = CardDefaults.cardColors(
-                  containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                shape = RoundedCornerShape(16.dp)
-              ) {
-                Column {
-                  val languages = LanguageCode.values()
-                  languages.forEachIndexed { index, option ->
-                    Row(
-                      modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.setLanguage(option) }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                      verticalAlignment = Alignment.CenterVertically,
-                      horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                      Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                          text = option.flagEmoji,
-                          fontSize = 18.sp,
-                          modifier = Modifier.padding(end = 12.dp)
-                        )
-                        Text(
-                          text = option.displayName,
-                          style = MaterialTheme.typography.bodyLarge,
-                          color = MaterialTheme.colorScheme.onSurface,
-                          fontWeight = if (lang == option) FontWeight.Bold else FontWeight.Normal
-                        )
-                      }
-                      if (lang == option) {
-                        Text(
-                          text = "✓",
-                          fontSize = 18.sp,
-                          fontWeight = FontWeight.Bold,
-                          color = MaterialTheme.colorScheme.primary
-                        )
-                      }
+              var languageDropdownExpanded by remember { mutableStateOf(false) }
+              Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                  colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                  ),
+                  shape = RoundedCornerShape(16.dp),
+                  modifier = Modifier.fillMaxWidth().clickable { languageDropdownExpanded = true }
+                ) {
+                  Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                      Text(
+                        text = lang.flagEmoji,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(end = 12.dp)
+                      )
+                      Text(
+                        text = lang.displayName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                      )
                     }
-                    if (index < languages.size - 1) {
-                      HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                    }
+                    Text("▼", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                  }
+                }
+                
+                DropdownMenu(
+                  expanded = languageDropdownExpanded,
+                  onDismissRequest = { languageDropdownExpanded = false },
+                  modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                  LanguageCode.values().forEach { option ->
+                    DropdownMenuItem(
+                      text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                          Text(
+                            text = option.flagEmoji,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(end = 12.dp)
+                          )
+                          Text(
+                            text = option.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (lang == option) FontWeight.Bold else FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurface
+                          )
+                        }
+                      },
+                      onClick = {
+                        viewModel.setLanguage(option)
+                        languageDropdownExpanded = false
+                      }
+                    )
                   }
                 }
               }
@@ -4424,8 +4499,10 @@ fun SettingsScreen(
               ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                   Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
                   ) {
                     val currencies = listOf("$", "€", "£", "₹", "¥", "₩", "₪")
                     currencies.forEach { symbol ->
@@ -4479,7 +4556,7 @@ fun SettingsScreen(
           item {
             Column {
               Text(
-                text = "App Information",
+                text = "Preferences & Info",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -4493,6 +4570,42 @@ fun SettingsScreen(
                 shape = RoundedCornerShape(16.dp)
               ) {
                 Column {
+                  // Notifications Toggle
+                  var notificationsEnabled by remember { mutableStateOf(true) }
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .clickable { notificationsEnabled = !notificationsEnabled }
+                      .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Icon(
+                      imageVector = Icons.Default.Notifications,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                      modifier = Modifier.padding(end = 12.dp).size(24.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = "Notifications",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                      )
+                      Text(
+                        text = "Allow reminders and alerts",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                      )
+                    }
+                    Switch(
+                      checked = notificationsEnabled,
+                      onCheckedChange = { notificationsEnabled = it }
+                    )
+                  }
+                  
+                  HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+
                   // View Privacy Policy option
                   Row(
                     modifier = Modifier
@@ -4501,10 +4614,11 @@ fun SettingsScreen(
                       .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                   ) {
-                    Text(
-                      text = "📄",
-                      fontSize = 18.sp,
-                      modifier = Modifier.padding(end = 12.dp)
+                    Icon(
+                      imageVector = Icons.Default.Policy,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                      modifier = Modifier.padding(end = 12.dp).size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                       Text(
@@ -4519,11 +4633,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                       )
                     }
-                    Text(
-                      text = "➔",
-                      color = MaterialTheme.colorScheme.primary,
-                      fontWeight = FontWeight.Bold
-                    )
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                   }
                   
                   HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
@@ -4539,10 +4649,11 @@ fun SettingsScreen(
                       .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                   ) {
-                    Text(
-                      text = "🪲",
-                      fontSize = 18.sp,
-                      modifier = Modifier.padding(end = 12.dp)
+                    Icon(
+                      imageVector = Icons.Default.BugReport,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                      modifier = Modifier.padding(end = 12.dp).size(24.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                       Text(
@@ -4557,11 +4668,41 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                       )
                     }
-                    Text(
-                      text = "➔",
-                      color = MaterialTheme.colorScheme.primary,
-                      fontWeight = FontWeight.Bold
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                  }
+                  
+                  HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                  
+                  val context = LocalContext.current
+                  Row(
+                    modifier = Modifier
+                      .fillMaxWidth()
+                      .clickable { 
+                        viewModel.clearAllData()
+                        android.widget.Toast.makeText(context, "Data Cleared", android.widget.Toast.LENGTH_SHORT).show()
+                      }
+                      .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                  ) {
+                    Icon(
+                      imageVector = Icons.Default.Delete,
+                      contentDescription = null,
+                      tint = MaterialTheme.colorScheme.error,
+                      modifier = Modifier.padding(end = 12.dp).size(24.dp)
                     )
+                    Column(modifier = Modifier.weight(1f)) {
+                      Text(
+                        text = "Clear Data",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                      )
+                      Text(
+                        text = "Erase all saved preferences and inputs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                      )
+                    }
                   }
                 }
               }

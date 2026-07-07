@@ -1,4 +1,8 @@
 package com.example
+import androidx.compose.ui.draw.scale
+
+import com.example.LoanCalculatorViewModel
+import com.example.LanguageCode
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -48,18 +52,19 @@ fun RentVsBuyTab(
     val cur = customCurrency ?: lang.currencySymbol
     val context = LocalContext.current
 
+    val isCleared = viewModel.homePrice.value.isEmpty()
     // Input States
-    var rentInput by remember { mutableStateOf("1800") }
-    var rentIncreaseInput by remember { mutableStateOf("3.0") }
-    var rentersInsInput by remember { mutableStateOf("15") }
+    var rentInput by remember { mutableStateOf(if (isCleared) "" else "1800") }
+    var rentIncreaseInput by remember { mutableStateOf(if (isCleared) "" else "3.0") }
+    var rentersInsInput by remember { mutableStateOf(if (isCleared) "" else "15") }
 
     // Synchronize initial Buying inputs from main Loan Calculator ViewModel
-    var homePriceInput by remember { mutableStateOf(viewModel.homePrice.value.ifEmpty { "350000" }) }
-    var downPaymentInput by remember { mutableStateOf(viewModel.downPayment.value.ifEmpty { "70000" }) }
-    var interestRateInput by remember { mutableStateOf(viewModel.interestRate.value.ifEmpty { "6.5" }) }
-    var loanTermInput by remember { mutableStateOf(viewModel.loanTermYears.value.ifEmpty { "30" }) }
-    var taxRateInput by remember { mutableStateOf(viewModel.propertyTaxRate.value.ifEmpty { "1.2" }) }
-    var homeInsInput by remember { mutableStateOf(viewModel.homeInsurance.value.ifEmpty { "1200" }) }
+    var homePriceInput by remember { mutableStateOf(viewModel.homePrice.value) }
+    var downPaymentInput by remember { mutableStateOf(viewModel.downPayment.value) }
+    var interestRateInput by remember { mutableStateOf(viewModel.interestRate.value) }
+    var loanTermInput by remember { mutableStateOf(viewModel.loanTermYears.value) }
+    var taxRateInput by remember { mutableStateOf(viewModel.propertyTaxRate.value) }
+    var homeInsInput by remember { mutableStateOf(viewModel.homeInsurance.value) }
     
     // Rent vs Buy Specific owner inputs
     var registrationTaxInput by remember { mutableStateOf("2.0") } // upfront registration / stamp duty & taxes %
@@ -69,6 +74,24 @@ fun RentVsBuyTab(
     // Strategy Parameters
     var plannedYearsInput by remember { mutableStateOf("7") }
     var activeGlossaryTerm by remember { mutableStateOf<String?>(null) }
+    var showExtendedProjection by remember { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.clearDataEvent.collect {
+            rentInput = ""
+            rentIncreaseInput = ""
+            rentersInsInput = ""
+            homePriceInput = ""
+            downPaymentInput = ""
+            interestRateInput = ""
+            loanTermInput = ""
+            taxRateInput = ""
+            homeInsInput = ""
+            registrationTaxInput = ""
+            maintenanceInput = ""
+            appreciationInput = ""
+        }
+    }
 
     // Recalculate everything dynamically
     val rentMonthly = rentInput.toDoubleOrNull() ?: 1800.0
@@ -228,6 +251,14 @@ fun RentVsBuyTab(
                             LanguageCode.TA -> "LTV (கடன்-மதிப்பு விகிதம்)"
                             else -> "LTV (Loan-To-Value Ratio)"
                         }
+                        "BrokerFee" -> when(lang) {
+                            LanguageCode.ES -> "Costos de Venta y Comisiones"
+                            LanguageCode.FR -> "Frais de Courtage et Vente"
+                            LanguageCode.DE -> "Maklergebühren und Verkaufskosten"
+                            LanguageCode.HI -> "दलाली और बिक्री लागत"
+                            LanguageCode.TA -> "தரகு மற்றும் விற்பனை செலவுகள்"
+                            else -> "Selling Costs & Broker Fees"
+                        }
                         "ROI" -> when(lang) {
                             LanguageCode.ES -> "ROI (Punto de Equilibrio de Inversión)"
                             LanguageCode.FR -> "ROI (Retour sur Investissement)"
@@ -340,6 +371,14 @@ fun RentVsBuyTab(
                             LanguageCode.TA -> "நீங்கள் இந்த வீட்டில் வசிக்கத் திட்டமிட்டுள்ள ஆண்டுகள். வீடு வாங்குவது அதிக ஆரம்ப மற்றும் நிறைவு கட்டணங்களை உள்ளடக்கியது, எனவே இக்காலகட்டம் உங்களது சமநிலை ஆண்டிற்கு குறைவாக இருந்தால் வாடகைக்கு இருப்பதே சிறந்தது."
                             else -> "The duration you plan to live in this house. Buying involves large upfront and exit transaction costs; stays shorter than your break-even crossover year are financially inefficient, making renting wiser."
                         }
+                        "BrokerFee" -> when(lang) {
+                            LanguageCode.ES -> "El 'Costo Neto de Compra' supone que la propiedad se vende en el año objetivo. No incluye honorarios de corredores u otros costos de cierre que pueden variar según la región (generalmente entre 3% y 6%)."
+                            LanguageCode.FR -> "Le «Coût Net d'Achat» suppose la vente de la propriété à l'année cible. Il n'inclut pas les frais de courtage ou autres frais de clôture qui varient selon la région (généralement 3% à 6%)."
+                            LanguageCode.DE -> "Die 'Kauf Netto-Zahlung' geht davon aus, dass die Immobilie im Zieljahr verkauft wird. Maklergebühren oder andere Abschlusskosten, die je nach Region variieren (typischerweise 3% bis 6%), sind nicht enthalten."
+                            LanguageCode.HI -> "'शुद्ध खरीद लागत' यह मानती है कि संपत्ति लक्ष्य वर्ष में बेची जाती है। इसमें दलाली शुल्क या अन्य समापन लागतें शामिल नहीं हैं जो क्षेत्र के अनुसार भिन्न हो सकती हैं (आमतौर पर 3% से 6%)।"
+                            LanguageCode.TA -> "'வாங்குதலின் நிகர மதிப்பு' என்பது இலக்கு ஆண்டில் சொத்து விற்கப்படுவதாகக் கருதுகிறது. பிராந்தியத்தைப் பொறுத்து மாறுபடும் தரகர் கட்டணம் அல்லது பிற நிறைவுச் செலவுகளை (பொதுவாக 3% முதல் 6% வரை) இதில் சேர்க்கவில்லை."
+                            else -> "The 'Buy Net Cost' assumes the property is sold at the target year. It does not include broker fees or other closing costs when selling, which can vary by region (typically 3% to 6% of the home's value)."
+                        }
                         else -> ""
                     },
                     style = MaterialTheme.typography.bodyMedium
@@ -408,14 +447,24 @@ fun RentVsBuyTab(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     RentVsBuyHeader(lang, breakEvenYearVal)
-                    RentVsBuyDashboard(lang, cur, projectionList, breakEvenYearVal)
+                    RentVsBuyDashboard(
+                        lang = lang,
+                        cur = cur,
+                        projectionList = projectionList,
+                        breakEvenYear = breakEvenYearVal,
+                        plannedYears = plannedYears,
+                        showExtendedProjection = showExtendedProjection,
+                        onToggleExtendedProjection = { showExtendedProjection = it },
+                        onHelpClick = { activeGlossaryTerm = it }
+                    )
+                    val targetRow = if (showExtendedProjection) projectionList.last() else projectionList.firstOrNull { it.year == plannedYears } ?: projectionList.last()
                     RentVsBuyExplanationCard(
                         lang = lang,
                         cur = cur,
                         breakEvenYear = breakEvenYearVal,
                         plannedYears = plannedYears,
-                        rentCumulativeSpend = projectionList.last().rentCumulativeSpend,
-                        buyEquity = projectionList.last().buyEquity,
+                        rentCumulativeSpend = targetRow.rentCumulativeSpend,
+                        buyEquity = targetRow.buyEquity,
                         homePrice = homePriceVal,
                         rentMonthly = rentMonthly,
                         appreciationVal = appreciationVal,
@@ -423,25 +472,50 @@ fun RentVsBuyTab(
                     )
                     Button(
                         onClick = {
-                            PdfReportExporter.generateAndShareRentVsBuyPdf(
-                                context = context,
-                                lang = lang,
-                                rentMonthly = rentMonthly,
-                                rentIncrease = rentIncrease,
-                                rentersIns = rentersIns,
-                                homePriceVal = homePriceVal,
-                                downPaymentVal = downPaymentVal,
-                                interestRateVal = interestRateVal,
-                                loanTermYears = loanTermYears,
-                                taxRateVal = taxRateVal,
-                                homeInsVal = homeInsVal,
-                                maintenanceVal = maintenanceVal,
-                                appreciationVal = appreciationVal,
-                                registrationTaxVal = registrationTaxVal,
-                                breakEvenYear = breakEvenYearVal,
-                                plannedYears = plannedYears,
-                                projectionList = projectionList
-                            )
+                            val activity = context.findActivity()
+                            if (activity != null) {
+                                InterstitialAdHelper.showAdIfReady(activity) {
+                                    PdfReportExporter.generateAndShareRentVsBuyPdf(
+                                        context = context,
+                                        lang = lang,
+                                        rentMonthly = rentMonthly,
+                                        rentIncrease = rentIncrease,
+                                        rentersIns = rentersIns,
+                                        homePriceVal = homePriceVal,
+                                        downPaymentVal = downPaymentVal,
+                                        interestRateVal = interestRateVal,
+                                        loanTermYears = loanTermYears,
+                                        taxRateVal = taxRateVal,
+                                        homeInsVal = homeInsVal,
+                                        maintenanceVal = maintenanceVal,
+                                        appreciationVal = appreciationVal,
+                                        registrationTaxVal = registrationTaxVal,
+                                        breakEvenYear = breakEvenYearVal,
+                                        plannedYears = plannedYears,
+                                        projectionList = projectionList
+                                    )
+                                }
+                            } else {
+                                PdfReportExporter.generateAndShareRentVsBuyPdf(
+                                    context = context,
+                                    lang = lang,
+                                    rentMonthly = rentMonthly,
+                                    rentIncrease = rentIncrease,
+                                    rentersIns = rentersIns,
+                                    homePriceVal = homePriceVal,
+                                    downPaymentVal = downPaymentVal,
+                                    interestRateVal = interestRateVal,
+                                    loanTermYears = loanTermYears,
+                                    taxRateVal = taxRateVal,
+                                    homeInsVal = homeInsVal,
+                                    maintenanceVal = maintenanceVal,
+                                    appreciationVal = appreciationVal,
+                                    registrationTaxVal = registrationTaxVal,
+                                    breakEvenYear = breakEvenYearVal,
+                                    plannedYears = plannedYears,
+                                    projectionList = projectionList
+                                )
+                            }
                         },
                         modifier = Modifier.fillMaxWidth().testTag("download_pdf_button_tablet"),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -462,7 +536,7 @@ fun RentVsBuyTab(
                             }
                         )
                     }
-                    RentVsBuyProjectionsList(lang, cur, projectionList)
+                    RentVsBuyProjectionsList(lang, cur, projectionList, plannedYears, showExtendedProjection)
                 }
             }
         } else {
@@ -505,14 +579,24 @@ fun RentVsBuyTab(
                     onPlannedYearsChange = { plannedYearsInput = it },
                     onHelpClick = { activeGlossaryTerm = it }
                 )
-                RentVsBuyDashboard(lang, cur, projectionList, breakEvenYearVal)
+                RentVsBuyDashboard(
+                    lang = lang,
+                    cur = cur,
+                    projectionList = projectionList,
+                    breakEvenYear = breakEvenYearVal,
+                    plannedYears = plannedYears,
+                    showExtendedProjection = showExtendedProjection,
+                    onToggleExtendedProjection = { showExtendedProjection = it },
+                    onHelpClick = { activeGlossaryTerm = it }
+                )
+                val targetRow = if (showExtendedProjection) projectionList.last() else projectionList.firstOrNull { it.year == plannedYears } ?: projectionList.last()
                 RentVsBuyExplanationCard(
                     lang = lang,
                     cur = cur,
                     breakEvenYear = breakEvenYearVal,
                     plannedYears = plannedYears,
-                    rentCumulativeSpend = projectionList.last().rentCumulativeSpend,
-                    buyEquity = projectionList.last().buyEquity,
+                    rentCumulativeSpend = targetRow.rentCumulativeSpend,
+                    buyEquity = targetRow.buyEquity,
                     homePrice = homePriceVal,
                     rentMonthly = rentMonthly,
                     appreciationVal = appreciationVal,
@@ -520,25 +604,50 @@ fun RentVsBuyTab(
                 )
                 Button(
                     onClick = {
-                        PdfReportExporter.generateAndShareRentVsBuyPdf(
-                            context = context,
-                            lang = lang,
-                            rentMonthly = rentMonthly,
-                            rentIncrease = rentIncrease,
-                            rentersIns = rentersIns,
-                            homePriceVal = homePriceVal,
-                            downPaymentVal = downPaymentVal,
-                            interestRateVal = interestRateVal,
-                            loanTermYears = loanTermYears,
-                            taxRateVal = taxRateVal,
-                            homeInsVal = homeInsVal,
-                            maintenanceVal = maintenanceVal,
-                            appreciationVal = appreciationVal,
-                            registrationTaxVal = registrationTaxVal,
-                            breakEvenYear = breakEvenYearVal,
-                            plannedYears = plannedYears,
-                            projectionList = projectionList
-                        )
+                        val activity = context.findActivity()
+                        if (activity != null) {
+                            InterstitialAdHelper.showAdIfReady(activity) {
+                                PdfReportExporter.generateAndShareRentVsBuyPdf(
+                                    context = context,
+                                    lang = lang,
+                                    rentMonthly = rentMonthly,
+                                    rentIncrease = rentIncrease,
+                                    rentersIns = rentersIns,
+                                    homePriceVal = homePriceVal,
+                                    downPaymentVal = downPaymentVal,
+                                    interestRateVal = interestRateVal,
+                                    loanTermYears = loanTermYears,
+                                    taxRateVal = taxRateVal,
+                                    homeInsVal = homeInsVal,
+                                    maintenanceVal = maintenanceVal,
+                                    appreciationVal = appreciationVal,
+                                    registrationTaxVal = registrationTaxVal,
+                                    breakEvenYear = breakEvenYearVal,
+                                    plannedYears = plannedYears,
+                                    projectionList = projectionList
+                                )
+                            }
+                        } else {
+                            PdfReportExporter.generateAndShareRentVsBuyPdf(
+                                context = context,
+                                lang = lang,
+                                rentMonthly = rentMonthly,
+                                rentIncrease = rentIncrease,
+                                rentersIns = rentersIns,
+                                homePriceVal = homePriceVal,
+                                downPaymentVal = downPaymentVal,
+                                interestRateVal = interestRateVal,
+                                loanTermYears = loanTermYears,
+                                taxRateVal = taxRateVal,
+                                homeInsVal = homeInsVal,
+                                maintenanceVal = maintenanceVal,
+                                appreciationVal = appreciationVal,
+                                registrationTaxVal = registrationTaxVal,
+                                breakEvenYear = breakEvenYearVal,
+                                plannedYears = plannedYears,
+                                projectionList = projectionList
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().testTag("download_pdf_button_mobile"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -559,7 +668,7 @@ fun RentVsBuyTab(
                         }
                     )
                 }
-                RentVsBuyProjectionsList(lang, cur, projectionList)
+                RentVsBuyProjectionsList(lang, cur, projectionList, plannedYears, showExtendedProjection)
             }
         }
     }
@@ -839,29 +948,26 @@ fun RentVsBuyInputs(
                     }
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = interestRateInput,
-                    onValueChange = { onInterestRateChange(coerceInputString(it, 35.0, false)) },
+                    onValueChange = { onInterestRateChange(coerceInputString(it, 30.0, true)) },
                     label = { Text(when(lang) {
-                        LanguageCode.ES -> "Interés %"
-                        LanguageCode.FR -> "Intérêt %"
-                        LanguageCode.DE -> "Zinssatz %"
-                        LanguageCode.HI -> "ब्याज दर %"
+                        LanguageCode.ES -> "Tasa %"
+                        LanguageCode.FR -> "Taux %"
+                        LanguageCode.DE -> "Zins %"
+                        LanguageCode.HI -> "ब्याज %"
                         LanguageCode.TA -> "வட்டி %"
-                        else -> "Rate %"
+                        else -> "Interest Rate %"
                     }) },
                     singleLine = true,
-                    modifier = Modifier.weight(1f).testTag("buy_rate_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = {
-                        IconButton(onClick = { onHelpClick("APR") }) {
-                            Icon(imageVector = Icons.Default.Info, contentDescription = "Interest Rate Help")
-                        }
-                    }
+                    modifier = Modifier.weight(1.1f).testTag("buy_rate_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-
                 OutlinedTextField(
                     value = loanTermInput,
                     onValueChange = { onLoanTermChange(coerceInputString(it, 50.0, true)) },
@@ -878,91 +984,88 @@ fun RentVsBuyInputs(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = taxRateInput,
-                    onValueChange = { onTaxRateChange(coerceInputString(it, 15.0, false)) },
+                    onValueChange = { onTaxRateChange(coerceInputString(it, 10.0, true)) },
                     label = { Text(when(lang) {
-                        LanguageCode.ES -> "Impuesto Predial %"
-                        LanguageCode.FR -> "Taxe Foncier %"
+                        LanguageCode.ES -> "Impuesto Propiedad %"
+                        LanguageCode.FR -> "Taxe Foncière %"
                         LanguageCode.DE -> "Grundsteuer %"
-                        LanguageCode.HI -> "सम्पत्ति कर %"
+                        LanguageCode.HI -> "संपत्ति कर %"
                         LanguageCode.TA -> "சொத்து வரி %"
-                        else -> "Tax Rate %/yr"
+                        else -> "Property Tax %"
                     }) },
                     singleLine = true,
-                    modifier = Modifier.weight(1f).testTag("buy_tax_input"),
+                    modifier = Modifier.weight(1.1f).testTag("buy_tax_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-
-                OutlinedTextField(
-                    value = registrationTaxInput,
-                    onValueChange = { onRegistrationTaxChange(coerceInputString(it, 20.0, false)) },
-                    label = { Text(when(lang) {
-                        LanguageCode.ES -> "Reg. y Tasas %"
-                        LanguageCode.FR -> "Enreg. & Taxes %"
-                        LanguageCode.DE -> "Kaufnebenkosten %"
-                        LanguageCode.HI -> "पंजीकरण और कर %"
-                        LanguageCode.TA -> "பதிவு மற்றும் வரிகள் %"
-                        else -> "Reg. & Taxes %"
-                    }) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f).testTag("buy_reg_tax_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = {
-                        IconButton(onClick = { onHelpClick("REG_TAX") }) {
-                            Icon(imageVector = Icons.Default.Info, contentDescription = "Reg & Tax Help")
-                        }
-                    }
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = homeInsInput,
-                    onValueChange = { onHomeInsChange(coerceInputString(it, 100000.0, true)) },
+                    onValueChange = { onHomeInsChange(coerceInputString(it, 50000.0, true)) },
                     label = { Text(when(lang) {
-                        LanguageCode.ES -> "Seguro Anual ($cur)"
-                        LanguageCode.FR -> "Assurance /an ($cur)"
-                        LanguageCode.DE -> "Versicherung /Jahr ($cur)"
-                        LanguageCode.HI -> "वार्षिक बीमा ($cur)"
-                        LanguageCode.TA -> "காப்பீடு /வருடம் ($cur)"
-                        else -> "Insurance/yr"
+                        LanguageCode.ES -> "Seguro ($cur/año)"
+                        LanguageCode.FR -> "Assurance ($cur/an)"
+                        LanguageCode.DE -> "Versicherung ($cur/J)"
+                        LanguageCode.HI -> "बीमा ($cur/वर्ष)"
+                        LanguageCode.TA -> "காப்பீடு ($cur/ஆண்டு)"
+                        else -> "Home Ins. ($cur/yr)"
                     }) },
                     singleLine = true,
                     modifier = Modifier.weight(1f).testTag("buy_ins_input"),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = registrationTaxInput,
+                    onValueChange = { onRegistrationTaxChange(coerceInputString(it, 20.0, true)) },
+                    label = { Text(when(lang) {
+                        LanguageCode.ES -> "Impuesto de Registro %"
+                        LanguageCode.FR -> "Droits de Mutation %"
+                        LanguageCode.DE -> "Grunderwerbsteuer %"
+                        LanguageCode.HI -> "पंजीकरण कर %"
+                        LanguageCode.TA -> "பதிவு வரி %"
+                        else -> "Closing Cost %"
+                    }) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1.1f).testTag("buy_reg_tax_input"),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
                 OutlinedTextField(
                     value = maintenanceInput,
-                    onValueChange = { onMaintenanceChange(coerceInputString(it, 10.0, false)) },
+                    onValueChange = { onMaintenanceChange(coerceInputString(it, 10.0, true)) },
                     label = { Text(when(lang) {
-                        LanguageCode.ES -> "Mant./HOA %/año"
-                        LanguageCode.FR -> "Maint./HOA %"
+                        LanguageCode.ES -> "Mantenimiento %"
+                        LanguageCode.FR -> "Entretien %"
                         LanguageCode.DE -> "Instandhaltung %"
-                        LanguageCode.HI -> "रखरखाव/HOA %"
-                        LanguageCode.TA -> "பராமரிப்பு/HOA %"
-                        else -> "Maint/HOA %/yr"
+                        LanguageCode.HI -> "रखरखाव %"
+                        LanguageCode.TA -> "பராமரிப்பு %"
+                        else -> "Maintenance %"
                     }) },
                     singleLine = true,
                     modifier = Modifier.weight(1f).testTag("buy_maint_input"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = {
-                        IconButton(onClick = { onHelpClick("HOA") }) {
-                            Icon(imageVector = Icons.Default.Info, contentDescription = "HOA Help")
-                        }
-                    }
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = appreciationInput,
-                    onValueChange = { onAppreciationChange(coerceInputString(it, 20.0, false)) },
+                    onValueChange = { onAppreciationChange(coerceInputString(it, 20.0, true)) },
                     label = { Text(when(lang) {
-                        LanguageCode.ES -> "Apreciación Anual %"
+                        LanguageCode.ES -> "Apreciación %"
                         LanguageCode.FR -> "Appréciation %"
                         LanguageCode.DE -> "Wertsteigerung %"
                         LanguageCode.HI -> "वार्षिक प्रशंसा %"
@@ -989,7 +1092,11 @@ fun RentVsBuyDashboard(
     lang: LanguageCode,
     cur: String,
     projectionList: List<YearlyComparisonRow>,
-    breakEvenYear: Int?
+    breakEvenYear: Int?,
+    plannedYears: Int,
+    showExtendedProjection: Boolean,
+    onToggleExtendedProjection: (Boolean) -> Unit,
+    onHelpClick: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1000,21 +1107,43 @@ fun RentVsBuyDashboard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = when(lang) {
-                    LanguageCode.ES -> "Cuadro de mando financiero (Plazo completo)"
-                    LanguageCode.FR -> "Tableau Financier Global"
-                    LanguageCode.DE -> "Finanzübersicht (Prognose)"
-                    LanguageCode.HI -> "वित्तीय सारांश (पूर्ण अवधि)"
-                    LanguageCode.TA -> "நிதி நிலைமை சுருக்கம்"
-                    else -> "Financial Overview Status (30-Year Complete)"
-                },
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = when(lang) {
+                        LanguageCode.ES -> if (showExtendedProjection) "Cuadro de mando (Plazo completo 30 Años)" else "Cuadro de mando ($plannedYears Años)"
+                        LanguageCode.FR -> if (showExtendedProjection) "Tableau (Global 30 Ans)" else "Tableau ($plannedYears Ans)"
+                        LanguageCode.DE -> if (showExtendedProjection) "Finanzübersicht (Komplett 30 Jahre)" else "Finanzübersicht ($plannedYears Jahre)"
+                        LanguageCode.HI -> if (showExtendedProjection) "सारांश (पूर्ण 30 वर्ष)" else "सारांश ($plannedYears वर्ष)"
+                        LanguageCode.TA -> if (showExtendedProjection) "சுருக்கம் (முழு 30 ஆண்டுகள்)" else "சுருக்கம் ($plannedYears ஆண்டுகள்)"
+                        else -> if (showExtendedProjection) "Financial Overview (30-Year Complete)" else "Financial Overview (Year $plannedYears)"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "30-Yr",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Switch(
+                        checked = showExtendedProjection,
+                        onCheckedChange = onToggleExtendedProjection,
+                        modifier = Modifier.scale(0.7f)
+                    )
+                }
+            }
 
-            val row30 = projectionList.last()
+            val targetRow = if (showExtendedProjection) projectionList.last() else projectionList.firstOrNull { it.year == plannedYears } ?: projectionList.last()
+            val targetYearLabel = if (showExtendedProjection) "30" else plannedYears.toString()
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1034,7 +1163,7 @@ fun RentVsBuyDashboard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "$cur ${String.format("%,.0f2", row30.rentCumulativeSpend).replace(".0f2", "")}",
+                        text = "$cur ${String.format("%,.0f2", targetRow.rentCumulativeSpend).replace(".0f2", "")}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -1042,23 +1171,28 @@ fun RentVsBuyDashboard(
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = when(lang) {
+                                LanguageCode.ES -> "Buy Net Cost (Costo Neto)"
+                                LanguageCode.FR -> "Achat Coût Net"
+                                LanguageCode.DE -> "Kauf Netto-Zahlung"
+                                LanguageCode.HI -> "खरीदने की शुद्ध लागत"
+                                LanguageCode.TA -> "வாங்குதலின் நிகர மதிப்பு"
+                                else -> "Buy Net Cost"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        IconButton(onClick = { onHelpClick("BrokerFee") }, modifier = Modifier.size(24.dp).padding(start = 4.dp)) {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = "Broker Fee Info", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        }
+                    }
                     Text(
-                        text = when(lang) {
-                            LanguageCode.ES -> "Buy Net Cost (Costo Neto)"
-                            LanguageCode.FR -> "Achat Coût Net"
-                            LanguageCode.DE -> "Kauf Netto-Zahlung"
-                            LanguageCode.HI -> "खरीदने की शुद्ध लागत"
-                            LanguageCode.TA -> "வாங்குதலின் நிகர மதிப்பு"
-                            else -> "Buy Net Cost"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "$cur ${String.format("%,.0f2", row30.buyNetCost).replace(".0f2", "")}",
+                        text = "$cur ${String.format("%,.0f2", targetRow.buyNetCost).replace(".0f2", "")}",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = if (row30.buyNetCost < row30.rentCumulativeSpend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                        color = if (targetRow.buyNetCost < targetRow.rentCumulativeSpend) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -1086,22 +1220,21 @@ fun RentVsBuyDashboard(
                 ) {
                     Text(
                         text = when(lang) {
-                            LanguageCode.ES -> "Valor Estimado de la Vivienda (Año 30)"
-                            LanguageCode.FR -> "Valorisation estimée (Ans 30)"
-                            LanguageCode.DE -> "Geschätzter Wert (Jahr 30)"
-                            LanguageCode.HI -> "घर का अनुमानित मूल्य (वर्ष 30)"
-                            LanguageCode.TA -> "வீட்டின் மதிப்பு (30-ஆம் ஆண்டு)"
-                            else -> "Est. Property Value (Year 30)"
+                            LanguageCode.ES -> "Valor Estimado (Año $targetYearLabel)"
+                            LanguageCode.FR -> "Valorisation estimée (Ans $targetYearLabel)"
+                            LanguageCode.DE -> "Geschätzter Wert (Jahr $targetYearLabel)"
+                            LanguageCode.HI -> "अनुमानित मूल्य (वर्ष $targetYearLabel)"
+                            LanguageCode.TA -> "மதிப்பு ($targetYearLabel-ஆம் ஆண்டு)"
+                            else -> "Est. Property Value (Year $targetYearLabel)"
                         },
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "$cur ${String.format("%,.0f2", row30.buyHomeValue).replace(".0f2", "")}",
+                        text = "$cur ${String.format("%,.0f2", targetRow.buyHomeValue).replace(".0f2", "")}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -1118,7 +1251,7 @@ fun RentVsBuyDashboard(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = "$cur ${String.format("%,.0f2", row30.buyEquity).replace(".0f2", "")}",
+                        text = "$cur ${String.format("%,.0f2", targetRow.buyEquity).replace(".0f2", "")}",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -1133,7 +1266,9 @@ fun RentVsBuyDashboard(
 fun RentVsBuyProjectionsList(
     lang: LanguageCode,
     cur: String,
-    projectionList: List<YearlyComparisonRow>
+    projectionList: List<YearlyComparisonRow>,
+    plannedYears: Int,
+    showExtendedProjection: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1225,7 +1360,12 @@ fun RentVsBuyProjectionsList(
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
             // Show selected projection years representatively
-            val selectedYears = listOf(1, 2, 3, 5, 7, 10, 15, 20, 25, 30)
+            val standardYears = listOf(1, 2, 3, 5, 7, 10, 15, 20, 25, 30)
+            val selectedYears = if (showExtendedProjection) {
+                standardYears
+            } else {
+                (standardYears.filter { it < plannedYears } + plannedYears).distinct().sorted()
+            }
             
             selectedYears.forEach { yr ->
                 val row = projectionList.firstOrNull { it.year == yr }

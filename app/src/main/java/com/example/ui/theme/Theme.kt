@@ -24,7 +24,7 @@ private fun createDarkColorScheme(
     onPrimary = onPrimary,
     onBackground = OnDarkBackground,
     onSurface = OnDarkSurface,
-    outline = primary, // Set outline to match primary color
+    outline = primary,
     outlineVariant = primary.copy(alpha = 0.5f)
 )
 
@@ -43,7 +43,7 @@ fun MyApplicationTheme(
       "green" -> GreenColorScheme
       "red" -> RedColorScheme
       "yellow" -> YellowColorScheme
-      else -> BlueColorScheme // default
+      else -> BlueColorScheme
   }
   MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }
