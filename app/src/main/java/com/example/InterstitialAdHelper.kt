@@ -21,8 +21,8 @@ fun Context.findActivity(): Activity? {
 
 object InterstitialAdHelper {
     private const val TAG = "InterstitialAdHelper"
-    // Standard Google test interstitial ad unit ID
-    private const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
+    
+    
 
     private var mInterstitialAd: InterstitialAd? = null
     private var isAdLoading = false
@@ -39,7 +39,7 @@ object InterstitialAdHelper {
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             context.applicationContext,
-            AD_UNIT_ID,
+            context.getString(R.string.admob_interstitial_id),
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {

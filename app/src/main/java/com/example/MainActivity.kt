@@ -3271,7 +3271,7 @@ fun BannerAdComponent(
           factory = { ctx ->
             com.google.android.gms.ads.AdView(ctx).apply {
               setAdSize(com.google.android.gms.ads.AdSize.BANNER)
-              adUnitId = "ca-app-pub-3940256099942544/6300978111"
+              adUnitId = ctx.getString(R.string.admob_banner_id)
               loadAd(com.google.android.gms.ads.AdRequest.Builder().build())
             }
           }
