@@ -607,6 +607,8 @@ class LoanCalculatorViewModel(application: Application) : AndroidViewModel(appli
     }
 
     private fun recalculate() {
+        AppRatingManager.trackCalculation(getApplication())
+
         val currentType = loanType.value
         val hp = homePrice.value.parseToDoubleOrNull() ?: 0.0
         val dp = downPayment.value.parseToDoubleOrNull() ?: 0.0

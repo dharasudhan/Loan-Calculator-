@@ -148,3 +148,6 @@ tasks.register("fixBorders") {
         file.writeText(content)
     }
 }
+dependencies {
+    implementation("com.google.android.play:review-ktx:2.0.2")
+}

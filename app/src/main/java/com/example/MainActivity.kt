@@ -141,6 +141,9 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     
+    AppRatingManager.trackAppOpen(this)
+    AppRatingManager.maybeRequestRating(this)
+    
     try {
       MobileAds.initialize(this) {}
       InterstitialAdHelper.loadAd(this)
