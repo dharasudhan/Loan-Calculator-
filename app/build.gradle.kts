@@ -151,3 +151,6 @@ tasks.register("fixBorders") {
 dependencies {
     implementation("com.google.android.play:review-ktx:2.0.2")
 }
+dependencies {
+    implementation(libs.user.messaging.platform)
+}

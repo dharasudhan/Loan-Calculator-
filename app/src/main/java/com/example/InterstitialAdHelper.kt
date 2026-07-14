@@ -32,10 +32,15 @@ object InterstitialAdHelper {
     }
 
     fun loadAd(context: Context) {
-        if (mInterstitialAd != null || isAdLoading) {
+        if (!AdConfig.canRequestAds.value || mInterstitialAd != null || isAdLoading) {
             return
         }
         isAdLoading = true
+        try {
+            val webViewCacheDir = java.io.File(context.cacheDir, "WebView/Default/HTTP Cache/Code Cache")
+            java.io.File(webViewCacheDir, "js").mkdirs()
+            java.io.File(webViewCacheDir, "wasm").mkdirs()
+        } catch (e: Exception) {}
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(
             context.applicationContext,

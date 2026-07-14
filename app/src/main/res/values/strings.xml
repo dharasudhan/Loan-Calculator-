@@ -3,10 +3,10 @@
     <string name="empty"></string>
     
     <!-- AdMob configuration for production -->
-    <!-- Replace this with your actual AdMob App ID -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
-    <!-- Replace this with your actual Banner Ad Unit ID -->
-    <string name="admob_banner_id">ca-app-pub-3940256099942544/6300978111</string>
-    <!-- Replace this with your actual Interstitial Ad Unit ID -->
-    <string name="admob_interstitial_id">ca-app-pub-3940256099942544/1033173712</string>
+    <!-- Actual AdMob App ID -->
+    <string name="admob_app_id">ca-app-pub-6141525725546605~5592730265</string>
+    <!-- Actual Banner Ad Unit ID -->
+    <string name="admob_banner_id">ca-app-pub-6141525725546605/1664525320</string>
+    <!-- Actual Interstitial Ad Unit ID -->
+    <string name="admob_interstitial_id">ca-app-pub-6141525725546605/8455651615</string>
 </resources>

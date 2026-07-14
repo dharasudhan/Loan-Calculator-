@@ -94,9 +94,13 @@ play-services-ads = { group = "com.google.android.gms", name = "play-services-ad
 play-billing = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version = "3.1.0" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 google-devtools-ksp = { id = "com.google.devtools.ksp", version.ref = "googleDevtoolsKsp" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
+
+

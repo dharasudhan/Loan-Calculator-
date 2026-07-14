@@ -144,11 +144,23 @@ class MainActivity : ComponentActivity() {
     AppRatingManager.trackAppOpen(this)
     AppRatingManager.maybeRequestRating(this)
     
-    try {
-      MobileAds.initialize(this) {}
-      InterstitialAdHelper.loadAd(this)
-    } catch (e: Exception) {
-      Log.e("MainActivity", "AdMob initialization failed: ${e.message}")
+    val consentManager = ConsentManager(this)
+    var isMobileAdsInitializeCalled = false
+    
+    consentManager.gatherConsent(this) {
+        if (!isMobileAdsInitializeCalled) {
+            isMobileAdsInitializeCalled = true
+            AdConfig.canRequestAds.value = true
+            try {
+                val webViewCacheDir = java.io.File(cacheDir, "WebView/Default/HTTP Cache/Code Cache")
+                java.io.File(webViewCacheDir, "js").mkdirs()
+                java.io.File(webViewCacheDir, "wasm").mkdirs()
+                MobileAds.initialize(this) {}
+                InterstitialAdHelper.loadAd(this)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "AdMob initialization failed: ${e.message}")
+            }
+        }
     }
 
     setContent {
@@ -3251,7 +3263,8 @@ fun BannerAdComponent(
   onRemoveAdsClick: () -> Unit
 ) {
   val isAdFree by viewModel.isAdFreeVersion.collectAsState()
-  if (isAdFree) return
+  val canRequestAds by AdConfig.canRequestAds.collectAsState()
+  if (isAdFree || !canRequestAds) return
 
   Box(
     modifier = Modifier
@@ -3272,6 +3285,11 @@ fun BannerAdComponent(
         androidx.compose.ui.viewinterop.AndroidView(
           modifier = Modifier.fillMaxWidth().height(50.dp),
           factory = { ctx ->
+            try {
+                val webViewCacheDir = java.io.File(ctx.cacheDir, "WebView/Default/HTTP Cache/Code Cache")
+                java.io.File(webViewCacheDir, "js").mkdirs()
+                java.io.File(webViewCacheDir, "wasm").mkdirs()
+            } catch (e: Exception) {}
             com.google.android.gms.ads.AdView(ctx).apply {
               setAdSize(com.google.android.gms.ads.AdSize.BANNER)
               adUnitId = ctx.getString(R.string.admob_banner_id)
